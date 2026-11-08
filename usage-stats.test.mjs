@@ -20,15 +20,13 @@ registerHooks({
 
 const agentDir = mkdtempSync(path.join(tmpdir(), "usage-stats-test-"));
 globalThis.__usAgentDir = agentDir;
-const { default: factory, projectFilter, parseArgs, parseConfig, capOutput, openPath, lastLine, DEFAULT_CONFIG } = await import("./usage-stats.ts");
+const { default: factory, parseArgs, parseConfig, capOutput, DEFAULT_CONFIG } = await import("./usage-stats.ts");
 
 test("parseArgs", () => {
   assert.deepEqual(parseArgs(""), { kind: "run", script: "report", dir: undefined });
   assert.deepEqual(parseArgs("sim3.py"), { kind: "run", script: "sim3", dir: undefined });
   assert.deepEqual(parseArgs("AN2 C:/a b/c"), { kind: "run", script: "an2", dir: "C:/a b/c" });
   assert.deepEqual(parseArgs('an "C:/x y"'), { kind: "run", script: "an", dir: "C:/x y" });
-  assert.deepEqual(parseArgs("html"), { kind: "run", script: "html", dir: undefined });
-  assert.deepEqual(parseArgs("HTML C:/x y"), { kind: "run", script: "html", dir: "C:/x y" });
   assert.equal(parseArgs("list").kind, "list");
   assert.equal(parseArgs("help").kind, "list");
   assert.equal(parseArgs("nope").kind, "error");
@@ -51,7 +49,7 @@ test("capOutput", () => {
   assert.deepEqual(capOutput("a\nb\nc", 2), { text: "a\nb", more: 1 });
 });
 
-function setup(execImpl, deps) {
+function setup(execImpl) {
   const commands = new Map();
   const renderers = new Map();
   const execs = [];
@@ -63,7 +61,7 @@ function setup(execImpl, deps) {
     exec: async (cmd, args, opts) => (execs.push({ cmd, args, opts }), execImpl(cmd, args, opts)),
     appendEntry: (t, d) => entries.push({ t, d }),
   };
-  factory(pi, deps);
+  factory(pi);
   const ctx = {
     ui: { notify: (m, l) => notes.push({ m, l }) },
     sessionManager: { getSessionDir: () => agentDir },
@@ -145,85 +143,4 @@ test("argument completions", () => {
   assert.equal(c("zz"), null);
   assert.equal(c("report "), null);
   assert.deepEqual(c("rep").map((i) => i.value), ["report"]);
-});
-
-test("htmlpy: runs report_html.py, opens last stdout line, entry shows path", async () => {
-  rmSync(path.join(agentDir, "usage-stats.json"), { force: true });
-  const html = path.join(agentDir, "report.html");
-  writeFileSync(html, "<html></html>");
-  const opened = [];
-  const s = setup(async () => ({ stdout: `working...
-${html}
-
-`, stderr: "", code: 0 }), { open: (p) => opened.push(p) });
-  await s.cmd.handler("htmlpy", s.ctx);
-  assert.deepEqual(s.execs[0].args, [path.join(DEFAULT_CONFIG.scriptsDir, "report_html.py"), agentDir]);
-  assert.deepEqual(opened, [html]);
-  assert.equal(s.entries[0].d.script, "htmlpy");
-  assert.equal(s.entries[0].d.exitCode, 0);
-  assert.equal(s.entries[0].d.output, `HTML レポートを開きました:
-${html}`);
-  assert.ok(!s.notes.some((n) => n.l === "error"));
-});
-
-test("htmlpy: failure or missing file does not open", async () => {
-  const opened = [];
-  const deps = { open: (p) => opened.push(p) };
-  const f = setup(async () => ({ stdout: "", stderr: "boom", code: 1 }), deps);
-  await f.cmd.handler("htmlpy", f.ctx);
-  assert.equal(f.notes.at(-1).l, "error");
-  assert.match(f.notes.at(-1).m, /boom/);
-  assert.equal(f.entries.length, 1);
-  const m = setup(async () => ({ stdout: path.join(agentDir, "nope.html"), stderr: "", code: 0 }), deps);
-  await m.cmd.handler("htmlpy", m.ctx);
-  assert.equal(m.notes.at(-1).l, "error");
-  assert.match(m.notes.at(-1).m, /not found/);
-  assert.equal(m.entries.length, 1);
-  assert.deepEqual(opened, []);
-});
-
-test("openPath builds per-platform commands", () => {
-  const calls = [];
-  let unref = 0;
-  const spawnFn = (cmd, args, opts) => (calls.push({ cmd, args, opts }), { on() {}, unref: () => unref++ });
-  openPath("C:/r/a b.html", "win32", spawnFn);
-  openPath("/r/a.html", "darwin", spawnFn);
-  openPath("/r/a.html", "linux", spawnFn);
-  assert.deepEqual(calls.map((c) => [c.cmd, c.args]), [
-    ["cmd.exe", ["/c", "start", "", "C:/r/a b.html"]],
-    ["open", ["/r/a.html"]],
-    ["xdg-open", ["/r/a.html"]],
-  ]);
-  for (const c of calls) assert.deepEqual(c.opts, { detached: true, stdio: "ignore", windowsHide: true });
-  assert.equal(unref, 3);
-  assert.equal(lastLine("a\n b \n\n"), "b");
-  assert.equal(lastLine(""), "");
-});
-
-test("projectFilter: last two segments like pi-history project_name", () => {
-  assert.equal(projectFilter("G:\\Dev\\TS\\Pi"), "TS/Pi");
-  assert.equal(projectFilter("C:/a/b/c/"), "b/c");
-  assert.equal(projectFilter("/home"), "home");
-  assert.equal(projectFilter("C:/My Proj/x y"), '"My Proj/x y"');
-  assert.equal(projectFilter(undefined), "");
-});
-
-test("html: launches pi-history with the cwd project filter (no python, no entry)", async () => {
-  const calls = [];
-  const s = setup(async () => assert.fail("python must not run"), { history: async (exe, args, t) => (calls.push({ exe, args, t }), { code: 0, output: "opened http://127.0.0.1:1/\n" }) });
-  s.ctx.cwd = "G:/Dev/TS/Pi";
-  await s.cmd.handler("html", s.ctx);
-  assert.equal(s.execs.length, 0);
-  assert.deepEqual(calls[0].args, ["TS/Pi"]);
-  assert.equal(s.entries.length, 0);
-  assert.match(s.notes.at(-1).m, /pi-history \[TS\/Pi\] opened http/);
-  await s.cmd.handler("html other", s.ctx);
-  assert.deepEqual(calls[1].args, ["other"]);
-});
-
-test("html: spawn failure notifies error", async () => {
-  const s = setup(async () => ({}), { history: async () => { throw new Error("ENOENT"); } });
-  await s.cmd.handler("html", s.ctx);
-  assert.equal(s.notes.at(-1).l, "error");
-  assert.match(s.notes.at(-1).m, /ENOENT/);
 });
