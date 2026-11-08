@@ -7,7 +7,9 @@
  *   /usage-stats            -> report (readable summary: breakdown, 1h cache effect, sub savings, relay) on the current project's session dir
  *   /usage-stats an5        -> another script ("list" shows all)
  *   /usage-stats an2 <dir>  -> another session directory
- *   /usage-stats html [dir] -> chart HTML report (tools/usage-analysis/report_html.py), opened in the default browser
+ *   /usage-stats html [text] -> launches the standalone pi-history app (Rust, G:/Dev/Rust/pi-history; spend + cache panels),
+ *                              pre-filtered to the current project (or to [text], a project substring). Same exe lookup as /history.
+ *   /usage-stats htmlpy [dir] -> legacy chart HTML report (tools/usage-analysis/report_html.py), opened in the default browser
  *                              (set PI_USAGE_STATS_NO_OPEN=1 to only generate it)
  *
  * Optional config <agentDir>/usage-stats.json (read on every run):
@@ -18,10 +20,12 @@ import { Box, Text } from "@earendil-works/pi-tui";
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import * as nodePath from "node:path";
+import { resolveExe } from "./session-history.ts";
 
 export const SCRIPTS: Record<string, string> = {
   report: "わかりやすいまとめ（内訳・1hキャッシュ効果・サブの節約・relay）",
-  html: "グラフ付きHTMLレポートを生成してブラウザで開く（内訳・1hキャッシュ・サブ節約・サブスク使用率・relay）",
+  html: "pi-history アプリを起動してブラウザで開く（支出・キャッシュ(miss/relay)パネル。現在のプロジェクトで絞り込み）",
+  htmlpy: "（旧）Python のグラフ付きHTMLレポートを生成してブラウザで開く（内訳・1hキャッシュ・サブ節約・サブスク使用率・relay）",
   an: "セッション別集計、よく読まれるファイル、着手前の文脈量",
   an2: "system prompt 内訳、bash 出力量、エラー分類",
   an3: "サブの初動の読込、画像数、文脈帯別コスト",
@@ -97,14 +101,35 @@ export function lastLine(text: string): string {
   return text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).at(-1) ?? "";
 }
 
+/** pi-history's project label for a cwd: the last two path segments joined with "/" (see scan.rs project_name). */
+export function projectFilter(cwd: string | undefined): string {
+  const segs = (cwd ?? "").split(/[\\/]+/).filter(Boolean);
+  const name = segs.slice(-2).join("/");
+  return /\s/.test(name) ? `"${name}"` : name;
+}
+
+/** Spawn pi-history (it daemonizes itself, so wait only for the launcher to exit). */
+export function runPiHistory(exe: string, args: string[], timeoutMs: number): Promise<{ code: number | null; output: string }> {
+  return new Promise((resolve, reject) => {
+    const out: string[] = [];
+    const child = spawn(exe, args, { stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+    const timer = setTimeout(() => child.kill(), timeoutMs);
+    child.stdout?.on("data", (d) => out.push(String(d)));
+    child.stderr?.on("data", (d) => out.push(String(d)));
+    child.on("error", (e) => { clearTimeout(timer); reject(e); });
+    child.on("exit", (code) => { clearTimeout(timer); resolve({ code, output: out.join("") }); });
+  });
+}
+
 export function listText(): string {
   return Object.entries(SCRIPTS).map(([k, v]) => `${k}${k === DEFAULT_SCRIPT ? " (default)" : ""}: ${v}`).join("\n");
 }
 
 interface StatsData { script: string; dir: string; exitCode: number | null; output: string; stderrTail: string; at: number }
 
-export default function (pi: ExtensionAPI, deps: { open?: (path: string) => void } = {}) {
+export default function (pi: ExtensionAPI, deps: { open?: (path: string) => void; history?: typeof runPiHistory } = {}) {
   const open = deps.open ?? ((p: string) => openPath(p));
+  const history = deps.history ?? runPiHistory;
   let busy = false;
 
   pi.registerEntryRenderer<StatsData>(ENTRY_TYPE, (entry, _opts, theme) => {
@@ -133,10 +158,26 @@ export default function (pi: ExtensionAPI, deps: { open?: (path: string) => void
       if (p.kind === "list") return ctx.ui.notify(listText(), "info");
       if (p.kind === "error") return ctx.ui.notify(`usage-stats: ${p.message}`, "warning");
       if (busy) return ctx.ui.notify("usage-stats: already running", "warning");
+      if (p.script === "html") {
+        // pi-history only needs a project filter (not a session dir): [text] or the current cwd's last two segments.
+        const filter = p.dir ?? projectFilter((ctx as { cwd?: string }).cwd ?? process.cwd());
+        const exe = resolveExe();
+        busy = true;
+        try {
+          const r = await history(exe, filter ? [filter] : [], loadConfig().timeoutMs);
+          const text = r.output.trim().split(/\r?\n/).slice(-3).join(" / ");
+          ctx.ui.notify(`usage-stats: pi-history ${filter ? `[${filter}] ` : ""}${text || (r.code === 0 ? "ok" : `exit ${r.code}`)}`, r.code === 0 ? "info" : "warning");
+        } catch (e) {
+          ctx.ui.notify(`usage-stats: pi-history を起動できません (${exe}): ${String((e as Error)?.message ?? e)}`, "error");
+        } finally {
+          busy = false;
+        }
+        return;
+      }
       const dir = p.dir ?? ctx.sessionManager.getSessionDir();
       if (!dir || !existsSync(dir)) return ctx.ui.notify(`usage-stats: directory not found: ${dir}`, "warning");
       const cfg = loadConfig();
-      const scriptPath = nodePath.join(cfg.scriptsDir, p.script === "html" ? "report_html.py" : `${p.script}.py`);
+      const scriptPath = nodePath.join(cfg.scriptsDir, p.script === "htmlpy" ? "report_html.py" : `${p.script}.py`);
       busy = true;
       try {
         ctx.ui.notify(`usage-stats: running ${p.script} …`, "info");
@@ -147,7 +188,7 @@ export default function (pi: ExtensionAPI, deps: { open?: (path: string) => void
         } catch (e) {
           data = { script: p.script, dir, exitCode: -1, output: "", stderrTail: String((e as Error)?.message ?? e), at: Date.now() };
         }
-        if (p.script === "html" && data.exitCode === 0) {
+        if (p.script === "htmlpy" && data.exitCode === 0) {
           const htmlPath = lastLine(data.output);
           if (!htmlPath || !existsSync(htmlPath)) {
             data = { ...data, exitCode: -1, stderrTail: `HTML report not found: ${htmlPath || "(no path in output)"}` };

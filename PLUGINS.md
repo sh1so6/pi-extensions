@@ -16,7 +16,7 @@
 | コンパクション / 圧縮 / 文脈が大きい / 引き継ぎ / recall | context-relay |
 | コスト / トークン集計 / 使用量レポート | usage-stats → tools/usage-analysis |
 | MCP サーバが落ちる・再起動された・メモリ | mcp-idle-release |
-| 使用量・コストのグラフ / HTMLレポート / サブスク何%使った | usage-stats（`/usage-stats html`） → tools/usage-analysis |
+| 使用量・コストのグラフ / HTMLレポート / サブスク何%使った | usage-stats（`/usage-stats html` = pi-history、`htmlpy` = 旧Python） → pi-history / tools/usage-analysis |
 | 全部畳む / 展開 / ツール出力の表示 / 下部ボタン列 | fold-buttons |
 | パスをクリック / Everything 検索 | path-click（ボタン列は fold-buttons に依存） |
 | フッターの cwd クリック / エクスプローラで開く | cwd-open |
@@ -40,14 +40,14 @@
 | **pi-model-buttons** (`pi-model-buttons.ts`) | モデル＋thinking のクイック切替ボタン | `/model-list [all\|filter]`、`/model-buttons-reload`、`/model-button "<label>"` | `settings.json` `modelButtons.presets` | フルスクリーン TUI 必須。テストなし |
 | **scrollbar-markers** (`scrollbar-markers.ts`) | スクロールバーに、ユーザー発言(青)・AI 返信(白)の印 | `/scrollbar-markers [on\|off\|toggle\|status]`、`… ai [on\|off\|toggle]` | `settings.json` の `fullscreenScrollbar: "always"` 推奨 | Pi 内部（`ScrollView` 等）への差し込みで壊れやすい。非永続 |
 | **session-history** (`session-history.ts`) | **薄いランチャ**。`/history` で単体アプリ **pi-history**（Rust、`G:/Dev/Rust/pi-history`）を同じ引数で起動し、出力を notify するだけ。一覧・検索・カレンダー・個別セッションHTML（`pi --export` 子プロセス）はすべてアプリ側（一覧の下に支出パネルと「キャッシュ（miss / relay）」パネル。判定の定義は pi-history README の「キャッシュ統計」）。アプリは自分でデーモン化し、Pi 終了後も残る（`/history stop` か `pi-history stop` で停止） | `/history [stop\|all\|<プロジェクト部分一致>]` | アプリ側 `session-history.json` `{includeSubagents, port}` | exe 探索: `PI_HISTORY_EXE` → PATH の `pi-history`（`~/.pi/agent/bin` に配置済み）→ `G:/Dev/Rust/pi-history/target/release/pi-history.exe`。詳細は `G:/Dev/Rust/pi-history/README.md`。キャッシュ `~/.pi/agent/session-history/cache.json`。テスト: `node --test session-history.test.mjs` |
-| **usage-stats** (`usage-stats.ts`) | `tools/usage-analysis/` の Python スクリプトを実行し、結果を transcript に表示（`appendEntry` なので **LLM には送られない**） | `/usage-stats [script] [dir]`（`list` で一覧。`html` はグラフ付きHTMLを生成してブラウザで開く。`PI_USAGE_STATS_NO_OPEN=1` で開かない） | `usage-stats.json` `{scriptsDir, python, timeoutMs}` | `scriptsDir` 既定は `E:/Dev/TS/Pi/tools/usage-analysis`（このリポジトリの場所と違う場合は要設定） |
+| **usage-stats** (`usage-stats.ts`) | `tools/usage-analysis/` の Python スクリプトを実行し、結果を transcript に表示（`appendEntry` なので **LLM には送られない**） | `/usage-stats [script] [dir]`（`list` で一覧。**`html [text]` は pi-history を起動**（現在のプロジェクトで絞り込み、`text` で上書き。exe 探索は `/history` と同じ）。`htmlpy` は旧Pythonのグラフ付きHTMLを生成して開く。`PI_USAGE_STATS_NO_OPEN=1` で htmlpy は開かない） | `usage-stats.json` `{scriptsDir, python, timeoutMs}` | `scriptsDir` 既定は `E:/Dev/TS/Pi/tools/usage-analysis`（このリポジトリの場所と違う場合は要設定） |
 | **usage-analysis** (`tools/usage-analysis/`) | セッションログ(`~/.pi/agent/sessions/<project>/*.jsonl`)からトークン／コスト集計。`report.py` が日本語まとめ（内訳・1hキャッシュ効果・サブの節約・relay）、`report_html.py` が同じ内容のSVGグラフ付きHTML（＋サブスク7d使用率ゲージ。※5時間枠は廃止されたため扱わない。出力 `~/.pi/agent/usage-report/<project>.html`）。`an*.py` は個別分析、`sim3/sim4` は方式比較の試算、`cache-eval.mjs`（node）は 1h TTL/ウォーマー/relay の損得再計算（手順・基準値・判断基準は `EVALUATE.md`、2週間ごとの再評価用） | （usage-stats 経由） | — | 詳細は `tools/usage-analysis/README.md`。`sessions.json`（リポジトリ直下）は `an.py` の出力 |
 
 ## 連携関係
 
 - `cache-ttl-main` → `context-relay`: 期限前トリガは `cacheWrite1h>0` で 1h を判定（cache-ttl-main がメインに 1h を付ける前提）。
 - `fold-buttons` ← `path-click`: 共有ツールバーのレジストリ経由（fold-buttons がないとボタンは出ない）。
-- `usage-stats` → `tools/usage-analysis`: スクリプトを子プロセスで実行。
+- `usage-stats` → `tools/usage-analysis`: スクリプトを子プロセスで実行。`html` のみ `session-history.ts` の `resolveExe` を import して pi-history を起動（両ファイルを同じ extensions/ に置くこと）。
 - `cmd-alias`: 既定で `/z` → `/relay`（context-relay）。
 
 ## このファイルの保守
