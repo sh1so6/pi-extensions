@@ -16,5 +16,6 @@
 
 ## 配置の注意
 
-- 実際に動くのは `~/.pi/agent/extensions/` 内のコピー。このリポジトリを編集したら、コピーし直して Pi で `/reload` が必要。
+- `cache-ttl-main` / `cmd-alias` / `context-relay` は npm パッケージ（`@sh1so6/pi-*`）。編集したら `npm version patch -w <name>` → `npm publish -w <name> --access public`（通常のターミナル、セキュリティキー認証）→ `pi update --extensions` → `/reload`。`~/.pi/agent/extensions/` には置かない（二重ロード）。
+- それ以外の拡張は `~/.pi/agent/extensions/` 内のコピーが動く。編集したらコピーし直して Pi で `/reload` が必要。
 - `~/.pi/agent/extensions/` にはこのリポジトリ外の拡張（`herdr-agent-state.ts`。herdr が自動生成するので管理しない）もある。

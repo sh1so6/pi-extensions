@@ -3,7 +3,7 @@
 [Pi](https://github.com/earendil-works/pi) 用の自作拡張集です。**パッケージではありません**（`package.json` なし）。
 `pi install git:github.com/sh1so6/pi-extensions` で入れても何もロードされません。**使いたい拡張を1つずつ**入れてください。
 
-- **npm 配布（試験中）**: `cache-ttl-main` / `cmd-alias` / `context-relay` は `@sh1so6/pi-*` として npm から入れられます。更新は `pi update --extensions`。
+- **npm 配布**: `cache-ttl-main` / `cmd-alias` / `context-relay` は `@sh1so6/pi-*` として npm から入れられます。更新は `pi update --extensions`。
 - それ以外は下の手動コピーです。
 
 > 拡張は Pi のプロセス内でコードを実行します。入れる前に、そのファイルの中身（冒頭コメントに仕様あり）を読んでください。
