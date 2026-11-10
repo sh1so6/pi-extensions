@@ -1,0 +1,31 @@
+{
+  "name": "@sh1so6/pi-usage-stats",
+  "version": "0.1.0",
+  "description": "Pi extension: token/cost usage report via bundled Python scripts",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "pi-extension"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sh1so6/pi-extensions.git",
+    "directory": "usage-stats"
+  },
+  "files": [
+    "index.ts",
+    "README.md",
+    "usage-analysis/*.py",
+    "usage-analysis/*.md",
+    "usage-analysis/*.mjs"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

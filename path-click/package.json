@@ -1,0 +1,28 @@
+{
+  "name": "@sh1so6/pi-path-click",
+  "version": "0.1.0",
+  "description": "Pi extension: clickable local file paths in assistant messages (+ Everything search button)",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "pi-extension"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sh1so6/pi-extensions.git",
+    "directory": "path-click"
+  },
+  "files": [
+    "index.ts",
+    "README.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

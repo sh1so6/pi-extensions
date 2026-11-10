@@ -3,7 +3,17 @@
   "private": true,
   "workspaces": [
     "cache-ttl-main",
+    "claude-quota-router",
     "cmd-alias",
-    "context-relay"
+    "context-relay",
+    "cwd-open",
+    "fold-buttons",
+    "mcp-idle-release",
+    "path-click",
+    "pi-model-autocomplete",
+    "pi-model-buttons",
+    "scrollbar-markers",
+    "session-history",
+    "usage-stats"
   ]
 }

@@ -1,0 +1,28 @@
+{
+  "name": "@sh1so6/pi-pi-model-autocomplete",
+  "version": "0.1.0",
+  "description": "Pi extension: `#` + model name autocomplete",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "pi-extension"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sh1so6/pi-extensions.git",
+    "directory": "pi-model-autocomplete"
+  },
+  "files": [
+    "index.ts",
+    "README.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

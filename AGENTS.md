@@ -6,7 +6,7 @@
 質問が曖昧でも、`PLUGINS.md` の「症状・キーワード → プラグイン」表と一覧で対象を絞れる。
 
 1. `PLUGINS.md` で対象プラグインを特定する（コマンド・設定・依存関係もここにある）。
-2. 詳細が必要なら、対象ファイルの**冒頭コメント**（仕様はそこに書いてある）か `context-relay/README.md` / `tools/usage-analysis/README.md` だけを読む。
+2. 詳細が必要なら、対象ファイルの**冒頭コメント**（仕様はそこに書いてある）か `context-relay/README.md` / `usage-stats/usage-analysis/README.md` だけを読む。
 3. それでも足りない時だけ、対象ファイルに絞って grep / read する（リポジトリ全体の grep はしない）。
 
 ## 保守
@@ -16,6 +16,5 @@
 
 ## 配置の注意
 
-- `cache-ttl-main` / `cmd-alias` / `context-relay` は npm パッケージ（`@sh1so6/pi-*`）。編集したら `npm version patch -w <name>` → `npm publish -w <name> --access public`（通常のターミナル、セキュリティキー認証）→ `pi update --extensions` → `/reload`。`~/.pi/agent/extensions/` には置かない（二重ロード）。
-- それ以外の拡張は `~/.pi/agent/extensions/` 内のコピーが動く。編集したらコピーし直して Pi で `/reload` が必要。
+- 全拡張が npm パッケージ（`@sh1so6/pi-*`、`<name>/index.ts`）。編集したら `npm version patch -w <name>` → `npm publish -w <name> --access public`（通常のターミナル、セキュリティキー認証。複数は `-w` を並べて1回で）→ `pi update --extensions` → `/reload`。`~/.pi/agent/extensions/` には置かない（二重ロード）。
 - `~/.pi/agent/extensions/` にはこのリポジトリ外の拡張（`herdr-agent-state.ts`。herdr が自動生成するので管理しない）もある。
