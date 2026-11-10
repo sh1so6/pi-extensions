@@ -17,4 +17,4 @@
 ## 配置の注意
 
 - 実際に動くのは `~/.pi/agent/extensions/` 内のコピー。このリポジトリを編集したら、コピーし直して Pi で `/reload` が必要。
-- `~/.pi/agent/extensions/` にはこのリポジトリ外の拡張（`claude-quota-router.ts`, `herdr-agent-state.ts`）もある。
+- `~/.pi/agent/extensions/` にはこのリポジトリ外の拡張（`herdr-agent-state.ts`。herdr が自動生成するので管理しない）もある。

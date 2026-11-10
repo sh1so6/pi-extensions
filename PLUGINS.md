@@ -5,7 +5,7 @@
 
 - 配置: 各 `.ts` を `~/.pi/agent/extensions/` にコピー → Pi で `/reload`（`context-relay/` はフォルダごと）。
 - 設定ファイルの場所: `~/.pi/agent/`（`settings.json` ほか。下表の「設定」列）。
-- 注意: `~/.pi/agent/extensions/` には**このリポジトリ外**の拡張もある（`claude-quota-router.ts`, `herdr-agent-state.ts`）。ここには載っていない。
+- 注意: `~/.pi/agent/extensions/` には**このリポジトリ外**の拡張もある（`herdr-agent-state.ts` は herdr が自動生成・上書きするファイルなので管理しない）。
 - テスト: `node --test <name>.test.mjs`（`context-relay` は下記、`usage-analysis` は `python -m unittest`）。
 
 ## 症状・キーワード → プラグイン
@@ -15,6 +15,7 @@
 | キャッシュ / 1h / TTL / cacheWrite | cache-ttl-main（＋ context-relay の期限前トリガ） |
 | コンパクション / 圧縮 / 文脈が大きい / 引き継ぎ / recall | context-relay |
 | コスト / トークン集計 / 使用量レポート | usage-stats → tools/usage-analysis |
+| Claude サブスクの使用率 / API キー課金への自動切替 / `/claude-router` | claude-quota-router |
 | MCP サーバが落ちる・再起動された・メモリ | mcp-idle-release |
 | 使用量・コストのグラフ / 支出・キャッシュパネル | session-history（`/history`） → pi-history |
 | 全部畳む / 展開 / ツール出力の表示 / 下部ボタン列 | fold-buttons |
@@ -30,6 +31,7 @@
 | プラグイン（ファイル） | 何をする | コマンド | 設定 | 補足・依存 |
 |---|---|---|---|---|
 | **cache-ttl-main** (`cache-ttl-main.ts`) | **メインセッションだけ** Anthropic プロンプトキャッシュを 1h にする（`before_provider_request` で既存の `cache_control` に `ttl:"1h"` を付与）。1h 中は Pi のキャッシュウォーマーを止める。サブエージェントは触らない | `/cache-ttl`（状態・直近の cacheWrite/cacheWrite1h） | `cache-ttl-main.json` `{enabled}` | `PI_CACHE_RETENTION=long` なら何もしない。main/sub 判定は UI の有無とセッション名 `#<8hex>`。1h が効くかは `cacheWrite1h>0` で確認 |
+| **claude-quota-router** (`claude-quota-router.ts`) | Claude サブスク(anthropic/OAuth)の 7d/5h 使用率を見て、足りなくなったら同じモデルのまま API キー課金(`anthro-api`)へ自動切替（サブスク優先）。ModelRuntime の `getAuth` を包む方式で、セッション履歴・設定には触れない | `/claude-router [status\|auto\|sub\|api\|refresh]` | `claude-quota-router.json`（`threshold7d` 95 / `resume7d` 90 / `threshold5h` ほか全項目任意）、環境変数 `CLAUDE_ROUTER_FORCE=sub\|api` | `anthro-api` プロバイダ（API キー）が必要。使用率は `api.anthropic.com/api/oauth/usage`。キャッシュ `claude-quota-router.cache.json`。テスト: `node --test claude-quota-router.test.mjs` |
 | **cmd-alias** (`cmd-alias.ts`) | 短いスラッシュコマンドの別名（既定 `/z` → `/relay`） | 設定した別名 | `cmd-alias.json` `{aliases:{z:"/relay"}}` | 別名の別名・組み込みコマンド（/compact 等）は不可 |
 | **context-relay** (`context-relay/`) | LLM 要約の代わりに**決定的な引き継ぎノート**で擬似新規セッションを作る（コスト0）。古い生ログは `recall` ツールで取得。メインセッション専用 | `/relay`、ツール `recall` | `context-relay.json`（`auto`: onInput / beforeExpiry、各トークン閾値） | 詳細は `context-relay/README.md`。自動トリガ: 入力時（≥100k）／キャッシュ期限 20 秒前（≥140k）。ログ `~/.pi/agent/context-relay/log.jsonl`。ノート `~/.pi/agent/context-relay/<sessionId>/<n>.md`。ファイル: `index.ts`(本体) `note.ts`(ノート生成) `recall.ts` `auto.ts`(M2設定・期限推定・ログ) `entries.ts` `detect.ts` `git.ts` |
 | **cwd-open** (`cwd-open.ts`) | フッター 0 行目の作業ディレクトリをクリックで Explorer 等で開く（左=既定、右=メニュー） | `/open-cwd [label\|?]` | `settings.json` の `cwdOpener.openers` | フルスクリーン TUI 必須。フッターを置換せず `handleMouse` を差し込む |
