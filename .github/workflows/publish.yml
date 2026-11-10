@@ -1,0 +1,33 @@
+# Publishes every workspace package whose version is not on npm yet.
+# Auth: npm Trusted Publishing (OIDC) -- no token. Register each package once with:
+#   npm trust github @sh1so6/pi-<name> --file publish.yml --repo sh1so6/pi-extensions
+name: publish
+on:
+  push:
+    branches: [main]
+    paths: ["*/package.json"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Publish unpublished versions
+        run: |
+          npm -v
+          for dir in $(node -p "require('./package.json').workspaces.join(' ')"); do
+            name=$(node -p "require('./$dir/package.json').name")
+            ver=$(node -p "require('./$dir/package.json').version")
+            if npm view "$name@$ver" version >/dev/null 2>&1; then
+              echo "skip $name@$ver (already published)"
+            else
+              echo "publish $name@$ver"
+              npm publish -w "$dir" --access public
+            fi
+          done

@@ -18,5 +18,5 @@
 
 ## 配置の注意
 
-- 全拡張が npm パッケージ（`@sh1so6/pi-*`、`<name>/index.ts`）。編集したら `npm version patch -w <name>` → `npm publish -w <name> --access public`（通常のターミナル、セキュリティキー認証。複数は `-w` を並べて1回で）→ `pi update --extensions` → `/reload`。`~/.pi/agent/extensions/` には置かない（二重ロード）。
+- 全拡張が npm パッケージ（`@sh1so6/pi-*`、`<name>/index.ts`）。編集したら `npm version patch -w <name> --no-git-tag-version` → main に push。`.github/workflows/publish.yml`（Trusted Publishing / OIDC）が未公開バージョンのパッケージだけ自動公開する。公開後 `pi update --extensions` → `/reload`。`~/.pi/agent/extensions/` には置かない（二重ロード）。
 - `~/.pi/agent/extensions/` にはこのリポジトリ外の拡張（`herdr-agent-state.ts`。herdr が自動生成するので管理しない）もある。

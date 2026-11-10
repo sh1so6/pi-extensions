@@ -37,11 +37,11 @@ pi install npm:@sh1so6/pi-cache-ttl-main
 ## リリース
 
 ```bash
-npm version patch -w cache-ttl-main      # 変更した拡張だけ version を上げる
-npm publish -w cache-ttl-main --access public   # 複数なら -w を並べる
+npm version patch -w cache-ttl-main --no-git-tag-version   # 変更した拡張だけ version を上げる
+git commit -am "..." && git push                          # push すると GitHub Actions が未公開の版だけ npm へ公開
 ```
 
-公開した版は取り消せません。mac 側は `pi update --extensions`。
+公開は [`publish.yml`](.github/workflows/publish.yml)（npm Trusted Publishing）が行います。公開した版は取り消せません。mac 側は `pi update --extensions`。
 
 ## テスト
 
