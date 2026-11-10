@@ -16,7 +16,7 @@
  *                        falls back to all available models when no scope is set
  *   scopedOnly: false -> all models with configured credentials (default)
  *
- * Install: pi install npm:@sh1so6/pi-pi-model-autocomplete (or copy to ~/.pi/agent/extensions/<name>.ts and run /reload)
+ * Install: pi install npm:@sh1so6/pi-model-autocomplete (or copy to ~/.pi/agent/extensions/<name>.ts and run /reload)
  * Then run /reload in Pi.
  */
 import { getAgentDir, type ExtensionAPI } from "@earendil-works/pi-coding-agent";

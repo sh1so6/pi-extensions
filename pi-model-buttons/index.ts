@@ -1,6 +1,6 @@
 /**
  * Pi 1.0 model/thinking quick-switch buttons.
- * Install: pi install npm:@sh1so6/pi-pi-model-buttons (or copy to ~/.pi/agent/extensions/<name>.ts and run /reload).
+ * Install: pi install npm:@sh1so6/pi-model-buttons (or copy to ~/.pi/agent/extensions/<name>.ts and run /reload).
  * Requires fullscreen TUI for mouse clicks.
  * /model-list: registered models with configured credentials
  * /model-list all: all registered models (including those without credentials)

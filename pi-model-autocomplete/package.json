@@ -1,5 +1,5 @@
 {
-  "name": "@sh1so6/pi-pi-model-autocomplete",
+  "name": "@sh1so6/pi-model-autocomplete",
   "version": "0.1.1",
   "description": "Pi extension: `#` + model name autocomplete",
   "type": "module",

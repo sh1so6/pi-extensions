@@ -1,5 +1,5 @@
 {
-  "name": "@sh1so6/pi-pi-model-buttons",
+  "name": "@sh1so6/pi-model-buttons",
   "version": "0.1.1",
   "description": "Pi extension: quick model + thinking switch buttons",
   "type": "module",
