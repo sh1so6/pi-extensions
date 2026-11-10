@@ -1,6 +1,6 @@
 /**
  * cmd-alias: short slash-command aliases, e.g. `/z` -> `/relay`.
- * Place in ~/.pi/agent/extensions/cmd-alias.ts and run /reload.
+ * Install: pi install npm:@sh1so6/pi-cmd-alias (or copy to ~/.pi/agent/extensions/ and run /reload).
  *
  * Config (read when the extension loads): <agentDir>/cmd-alias.json
  *   { "aliases": { "z": "/relay", "z-pay": "/something --flag" } }

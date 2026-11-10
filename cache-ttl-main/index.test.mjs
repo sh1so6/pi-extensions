@@ -39,7 +39,7 @@ process.env.PI_CODING_AGENT_DIR = agentDir;
 delete process.env.PI_CACHE_RETENTION;
 after(() => rmSync(tmp, { recursive: true, force: true }));
 
-const ext = havePi ? await import("./cache-ttl-main.ts") : undefined;
+const ext = havePi ? await import("./index.ts") : undefined;
 const skip = !havePi && "installed Pi not found";
 
 // ---- realistic anthropic-messages payload (what pi-ai's serializer builds with retention "short") ----

@@ -1,0 +1,9 @@
+{
+  "name": "sh1so6-pi-extensions",
+  "private": true,
+  "workspaces": [
+    "cache-ttl-main",
+    "cmd-alias",
+    "context-relay"
+  ]
+}

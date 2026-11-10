@@ -20,7 +20,7 @@ registerHooks({
 
 const agentDir = mkdtempSync(path.join(tmpdir(), "cmd-alias-test-"));
 globalThis.__cmdAliasAgentDir = agentDir;
-const { default: factory, parseAliases, buildForward, commandNameOf } = await import("./cmd-alias.ts");
+const { default: factory, parseAliases, buildForward, commandNameOf } = await import("./index.ts");
 const cfg = path.join(agentDir, "cmd-alias.json");
 const obj = (m) => Object.fromEntries(m);
 

@@ -1,6 +1,6 @@
 /**
  * cache-ttl-main: 1-hour Anthropic prompt cache for the MAIN pi session only.
- * Place in ~/.pi/agent/extensions/cache-ttl-main.ts and run /reload.
+ * Install: pi install npm:@sh1so6/pi-cache-ttl-main (or copy to ~/.pi/agent/extensions/ and run /reload).
  *
  * Why: the main orchestrator session often waits 5-60 minutes for background subagents. Anthropic's
  * default prompt cache lives 5 minutes, so the next turn rewrites the whole (~150k token) prefix.

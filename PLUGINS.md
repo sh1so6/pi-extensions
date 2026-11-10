@@ -3,10 +3,10 @@
 このリポジトリの Pi 拡張の**索引**です。曖昧な質問を受けたら、まずここで該当プラグインを絞り、
 その後に該当ファイルの**冒頭コメント（仕様の詳細が書いてある）**だけを読んでください。全ファイルの grep は不要です。
 
-- 配置: 各 `.ts` を `~/.pi/agent/extensions/` にコピー → Pi で `/reload`（`context-relay/` はフォルダごと）。
+- 配置: `cache-ttl-main` / `cmd-alias` / `context-relay` は npm パッケージ（`pi install npm:@sh1so6/pi-<name>`、更新は `pi update --extensions`、リリース手順は README）。それ以外は各 `.ts` を `~/.pi/agent/extensions/` にコピー → Pi で `/reload`（`context-relay/` はフォルダごと）。
 - 設定ファイルの場所: `~/.pi/agent/`（`settings.json` ほか。下表の「設定」列）。
 - 注意: `~/.pi/agent/extensions/` には**このリポジトリ外**の拡張もある（`herdr-agent-state.ts` は herdr が自動生成・上書きするファイルなので管理しない）。
-- テスト: `node --test <name>.test.mjs`（`context-relay` は下記、`usage-analysis` は `python -m unittest`）。
+- テスト: `node --test <name>.test.mjs`（npm 化した3つは `<name>/index.test.mjs` など、各ディレクトリで`（`context-relay` は下記、`usage-analysis` は `python -m unittest`）。
 
 ## 症状・キーワード → プラグイン
 
@@ -30,10 +30,10 @@
 
 | プラグイン（ファイル） | 何をする | コマンド | 設定 | 補足・依存 |
 |---|---|---|---|---|
-| **cache-ttl-main** (`cache-ttl-main.ts`) | **メインセッションだけ** Anthropic プロンプトキャッシュを 1h にする（`before_provider_request` で既存の `cache_control` に `ttl:"1h"` を付与）。1h 中は Pi のキャッシュウォーマーを止める。サブエージェントは触らない | `/cache-ttl`（状態・直近の cacheWrite/cacheWrite1h） | `cache-ttl-main.json` `{enabled}` | `PI_CACHE_RETENTION=long` なら何もしない。main/sub 判定は UI の有無とセッション名 `#<8hex>`。1h が効くかは `cacheWrite1h>0` で確認 |
+| **cache-ttl-main** (`cache-ttl-main/`、npm `@sh1so6/pi-cache-ttl-main`) | **メインセッションだけ** Anthropic プロンプトキャッシュを 1h にする（`before_provider_request` で既存の `cache_control` に `ttl:"1h"` を付与）。1h 中は Pi のキャッシュウォーマーを止める。サブエージェントは触らない | `/cache-ttl`（状態・直近の cacheWrite/cacheWrite1h） | `cache-ttl-main.json` `{enabled}` | `PI_CACHE_RETENTION=long` なら何もしない。main/sub 判定は UI の有無とセッション名 `#<8hex>`。1h が効くかは `cacheWrite1h>0` で確認 |
 | **claude-quota-router** (`claude-quota-router.ts`) | Claude サブスク(anthropic/OAuth)の 7d/5h 使用率を見て、足りなくなったら同じモデルのまま API キー課金(`anthro-api`)へ自動切替（サブスク優先）。ModelRuntime の `getAuth` を包む方式で、セッション履歴・設定には触れない | `/claude-router [status\|auto\|sub\|api\|refresh]` | `claude-quota-router.json`（`threshold7d` 95 / `resume7d` 90 / `threshold5h` ほか全項目任意）、環境変数 `CLAUDE_ROUTER_FORCE=sub\|api` | `anthro-api` プロバイダ（API キー）が必要。使用率は `api.anthropic.com/api/oauth/usage`。キャッシュ `claude-quota-router.cache.json`。テスト: `node --test claude-quota-router.test.mjs` |
-| **cmd-alias** (`cmd-alias.ts`) | 短いスラッシュコマンドの別名（既定 `/z` → `/relay`） | 設定した別名 | `cmd-alias.json` `{aliases:{z:"/relay"}}` | 別名の別名・組み込みコマンド（/compact 等）は不可 |
-| **context-relay** (`context-relay/`) | LLM 要約の代わりに**決定的な引き継ぎノート**で擬似新規セッションを作る（コスト0）。古い生ログは `recall` ツールで取得。メインセッション専用 | `/relay`、ツール `recall` | `context-relay.json`（`auto`: onInput / beforeExpiry、各トークン閾値） | 詳細は `context-relay/README.md`。自動トリガ: 入力時（≥100k）／キャッシュ期限 20 秒前（≥140k）。ログ `~/.pi/agent/context-relay/log.jsonl`。ノート `~/.pi/agent/context-relay/<sessionId>/<n>.md`。ファイル: `index.ts`(本体) `note.ts`(ノート生成) `recall.ts` `auto.ts`(M2設定・期限推定・ログ) `entries.ts` `detect.ts` `git.ts` |
+| **cmd-alias** (`cmd-alias/`、npm `@sh1so6/pi-cmd-alias`) | 短いスラッシュコマンドの別名（既定 `/z` → `/relay`） | 設定した別名 | `cmd-alias.json` `{aliases:{z:"/relay"}}` | 別名の別名・組み込みコマンド（/compact 等）は不可 |
+| **context-relay** (`context-relay/`、npm `@sh1so6/pi-context-relay`) | LLM 要約の代わりに**決定的な引き継ぎノート**で擬似新規セッションを作る（コスト0）。古い生ログは `recall` ツールで取得。メインセッション専用 | `/relay`、ツール `recall` | `context-relay.json`（`auto`: onInput / beforeExpiry、各トークン閾値） | 詳細は `context-relay/README.md`。自動トリガ: 入力時（≥100k）／キャッシュ期限 20 秒前（≥140k）。ログ `~/.pi/agent/context-relay/log.jsonl`。ノート `~/.pi/agent/context-relay/<sessionId>/<n>.md`。ファイル: `index.ts`(本体) `note.ts`(ノート生成) `recall.ts` `auto.ts`(M2設定・期限推定・ログ) `entries.ts` `detect.ts` `git.ts` |
 | **cwd-open** (`cwd-open.ts`) | フッター 0 行目の作業ディレクトリをクリックで Explorer 等で開く（左=既定、右=メニュー） | `/open-cwd [label\|?]` | `settings.json` の `cwdOpener.openers` | フルスクリーン TUI 必須。フッターを置換せず `handleMouse` を差し込む |
 | **fold-buttons** (`fold-buttons.ts`) | エディタ下のバーに「全て畳む/展開」ボタン。thinking を隠し、ツール枠をヘッダーのみにする。**他拡張が使える共有ツールバー**（`globalThis[Symbol.for("pi.toolbar.buttons")]`）の描画元 | `/fold-all [on\|off\|toggle]` | なし（状態は非永続） | フルスクリーン TUI 必須。path-click の `[🔍 Everything]` ボタンはここに載る |
 | **mcp-idle-release** (`mcp-idle-release.ts`、約 2500 行) | アイドルな MCP **stdio** サーバのプロセスを止めてメモリ解放。次の呼び出しで Pi が遅延再接続。再起動後の最初の呼び出しに通知（`respawnPolicy: notify\|block`） | `/mcp-idle [release <server>\|on\|off\|minutes <n>]` | `mcp-idle-release.json`（`idleMinutes` 既定10, `exclude`, `servers.<name>`…） | 冒頭コメントが長い（通知の仕様・codemode 内呼び出しの扱い）。HTTP サーバは対象外。テスト 3 ファイル（`.test` / `.session.test` / `.shared.test`） |
