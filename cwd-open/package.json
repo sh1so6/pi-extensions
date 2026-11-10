@@ -1,6 +1,6 @@
 {
   "name": "@sh1so6/pi-cwd-open",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pi extension: click the footer working directory to open it in the file explorer",
   "type": "module",
   "license": "MIT",
@@ -15,7 +15,8 @@
   },
   "files": [
     "index.ts",
-    "README.md"
+    "README.md",
+    "README_ja.md"
   ],
   "pi": {
     "extensions": [

@@ -1,9 +1,11 @@
 # @sh1so6/pi-mcp-idle-release
 
-[Pi](https://github.com/earendil-works/pi) 拡張。アイドルな MCP stdio サーバのプロセスを止めてメモリを解放します。
+English | [日本語](README_ja.md)
+
+[Pi](https://github.com/earendil-works/pi) extension. Stops idle MCP stdio server processes to free memory; they restart on the next call.
 
 ```bash
 pi install npm:@sh1so6/pi-mcp-idle-release
 ```
 
-- 設定・コマンドなどの詳細は [index.ts](index.ts) の冒頭コメントを参照。
+- See the header comment of [index.ts](index.ts) for configuration and commands.

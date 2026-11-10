@@ -1,12 +1,14 @@
 # @sh1so6/pi-cmd-alias
 
-[Pi](https://github.com/earendil-works/pi) 拡張。スラッシュコマンドの短い別名を作ります（既定 `/z` → `/relay`）。
+English | [日本語](README_ja.md)
+
+[Pi](https://github.com/earendil-works/pi) extension. Creates short aliases for slash commands (default `/z` → `/relay`).
 
 ```bash
 pi install npm:@sh1so6/pi-cmd-alias
 ```
 
-- 設定: `~/.pi/agent/cmd-alias.json` `{ "aliases": { "z": "/relay", "z-stats": "/usage-stats" } }`
-- 別名の対象は拡張コマンド・プロンプトテンプレート・`/skill:name`。組み込みコマンド（`/compact` など）と別名の別名は不可。
-- 既定の `/z` は `@sh1so6/pi-context-relay` の `/relay` が前提です。
-- 詳細は [index.ts](index.ts) の冒頭コメントを参照。
+- Config: `~/.pi/agent/cmd-alias.json` `{ "aliases": { "z": "/relay", "z-stats": "/usage-stats" } }`
+- Targets can be extension commands, prompt templates and `/skill:name`. Built-in commands (e.g. `/compact`) and aliases of aliases are not supported.
+- The default `/z` assumes `/relay` from `@sh1so6/pi-context-relay`.
+- See the header comment of [index.ts](index.ts) for details.

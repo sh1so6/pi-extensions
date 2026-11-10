@@ -1,10 +1,12 @@
 # @sh1so6/pi-path-click
 
-[Pi](https://github.com/earendil-works/pi) 拡張。出力中のローカルファイルパスをクリック可能にします。
+English | [日本語](README_ja.md)
+
+[Pi](https://github.com/earendil-works/pi) extension. Makes local file paths in assistant output clickable (plus an Everything search button).
 
 ```bash
 pi install npm:@sh1so6/pi-path-click
 ```
 
-- クリップボード検索ボタン（Everything）の表示には `@sh1so6/pi-fold-buttons` が必要です。
-- 設定・コマンドなどの詳細は [index.ts](index.ts) の冒頭コメントを参照。
+- The clipboard search button (Everything) requires `@sh1so6/pi-fold-buttons`.
+- See the header comment of [index.ts](index.ts) for configuration and commands.

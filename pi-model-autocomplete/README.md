@@ -1,9 +1,11 @@
 # @sh1so6/pi-pi-model-autocomplete
 
-[Pi](https://github.com/earendil-works/pi) 拡張。`#` ＋モデル名の一部で補完します。
+English | [日本語](README_ja.md)
+
+[Pi](https://github.com/earendil-works/pi) extension. Autocompletes `provider/model-id` after `#` + part of a model name (does not change the active model).
 
 ```bash
 pi install npm:@sh1so6/pi-pi-model-autocomplete
 ```
 
-- 設定・コマンドなどの詳細は [index.ts](index.ts) の冒頭コメントを参照。
+- See the header comment of [index.ts](index.ts) for configuration and commands.

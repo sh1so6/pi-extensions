@@ -1,6 +1,6 @@
 {
   "name": "@sh1so6/pi-usage-stats",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pi extension: token/cost usage report via bundled Python scripts",
   "type": "module",
   "license": "MIT",
@@ -18,7 +18,8 @@
     "README.md",
     "usage-analysis/*.py",
     "usage-analysis/*.md",
-    "usage-analysis/*.mjs"
+    "usage-analysis/*.mjs",
+    "README_ja.md"
   ],
   "pi": {
     "extensions": [

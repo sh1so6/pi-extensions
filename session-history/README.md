@@ -1,10 +1,12 @@
 # @sh1so6/pi-session-history
 
-[Pi](https://github.com/earendil-works/pi) 拡張。`/history` で履歴ビューア [pi-history](https://github.com/sh1so6/pi-history)（Rust 製の別アプリ）を起動するランチャです。
+English | [日本語](README_ja.md)
+
+[Pi](https://github.com/earendil-works/pi) extension. `/history` launcher for the [pi-history](https://github.com/sh1so6/pi-history) viewer app (a separate Rust application).
 
 ```bash
 pi install npm:@sh1so6/pi-session-history
 ```
 
-- pi-history を別途ビルドして PATH に置くか、`PI_HISTORY_EXE` を設定してください。
-- 設定・コマンドなどの詳細は [index.ts](index.ts) の冒頭コメントを参照。
+- Build pi-history separately and put it on `PATH`, or set `PI_HISTORY_EXE`.
+- See the header comment of [index.ts](index.ts) for configuration and commands.

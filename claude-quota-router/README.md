@@ -1,10 +1,12 @@
 # @sh1so6/pi-claude-quota-router
 
-[Pi](https://github.com/earendil-works/pi) 拡張。Claude サブスクの使用率が上限に近づいたら、同じモデルのまま API キー課金へ自動切替します（`/claude-router`）。
+English | [日本語](README_ja.md)
+
+[Pi](https://github.com/earendil-works/pi) extension. Switches to API-key billing automatically (same model) when your Claude subscription usage nears its limit (`/claude-router`).
 
 ```bash
 pi install npm:@sh1so6/pi-claude-quota-router
 ```
 
-- `anthro-api` プロバイダ（API キー）が必要です。
-- 設定・コマンドなどの詳細は [index.ts](index.ts) の冒頭コメントを参照。
+- Requires an `anthro-api` provider (API key).
+- See the header comment of [index.ts](index.ts) for configuration and commands.

@@ -1,6 +1,6 @@
 {
   "name": "@sh1so6/pi-claude-quota-router",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pi extension: switch Claude subscription to API-key billing automatically when usage nears the limit",
   "type": "module",
   "license": "MIT",
@@ -15,7 +15,8 @@
   },
   "files": [
     "index.ts",
-    "README.md"
+    "README.md",
+    "README_ja.md"
   ],
   "pi": {
     "extensions": [

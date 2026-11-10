@@ -1,9 +1,11 @@
 # @sh1so6/pi-pi-model-buttons
 
-[Pi](https://github.com/earendil-works/pi) 拡張。モデルと thinking のクイック切替ボタンを表示します。
+English | [日本語](README_ja.md)
+
+[Pi](https://github.com/earendil-works/pi) extension. Quick buttons to switch model and thinking level.
 
 ```bash
 pi install npm:@sh1so6/pi-pi-model-buttons
 ```
 
-- 設定・コマンドなどの詳細は [index.ts](index.ts) の冒頭コメントを参照。
+- See the header comment of [index.ts](index.ts) for configuration and commands.

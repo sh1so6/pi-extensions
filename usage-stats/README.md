@@ -1,10 +1,12 @@
 # @sh1so6/pi-usage-stats
 
-[Pi](https://github.com/earendil-works/pi) 拡張。`/usage-stats` で同梱の Python スクリプトからトークン／コストの集計レポートを出します。
+English | [日本語](README_ja.md)
+
+[Pi](https://github.com/earendil-works/pi) extension. `/usage-stats` prints a token / cost report using the bundled Python scripts.
 
 ```bash
 pi install npm:@sh1so6/pi-usage-stats
 ```
 
-- Python が必要です。
-- 設定・コマンドなどの詳細は [index.ts](index.ts) の冒頭コメントを参照。
+- Requires Python.
+- See the header comment of [index.ts](index.ts) for configuration and commands.
