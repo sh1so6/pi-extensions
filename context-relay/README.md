@@ -6,7 +6,7 @@ A Pi extension that creates a **pseudo new session** instead of LLM-summarized c
 
 - It replaces the history with a "deterministically generated handoff note" plus "the most recent exchanges". No LLM is used (zero cost, same result every time).
 - Old raw logs (output of bash / read / codemode, etc.) **stay in the session file as they are**, so the model can fetch them with the `recall` tool only when needed.
-- It is for the main (orchestrator) session only. In subagent / headless sessions (`!ctx.hasUI`, or a session name ending in `…#<8 hex digits>`) it does nothing (no tools or commands are registered, and handlers pass straight through).
+- It is for the main (orchestrator) session only. In subagent / headless sessions — a session name ending in `…#<8 hex digits>` (the pi-subagents contract), or a one-shot mode (`ctx.mode` is `print` / `json`; `tui` and `rpc` count as main, since RPC does provide a UI context) — it does nothing (no tools or commands are registered, and handlers pass straight through).
 
 ## Installation
 
@@ -62,6 +62,7 @@ Right after a relay, no automatic relay runs until the context has grown by at l
 When an automatic relay completes, a one-line notification is shown (`context-relay: auto relay (new message) 152k → ~9k tokens`).
 Every relay (manual and automatic) is appended, one line each, to `~/.pi/agent/context-relay/log.jsonl`:
 `{at, sessionId, trigger: "manual"|"input"|"expiry", tokensBefore, noteChars, keptFrom, ok, error?}`.
+Input held by a relay is re-sent right after a `context-relay:resend` audit entry in the session file (`custom` entry; never part of the model context). It fingerprints each held item (sha256 of its text), so an outside reader — e.g. an RPC client whose prompt was answered `handled` and therefore started no run — can pair the re-sent user message with the prompt that was held, deterministically instead of by timestamp.
 
 ## Configuration (optional) `~/.pi/agent/context-relay.json`
 

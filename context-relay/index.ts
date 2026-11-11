@@ -13,6 +13,9 @@
  *   B. cache expiry: when the session settles, a timer fires 20 s before the prompt cache expires and relays if the
  *      context is big (the next turn would re-write the whole prefix anyway). No message to re-send.
  *   Every relay appends a line to <agentDir>/context-relay/log.jsonl.
+ *   Held input is preceded by a `context-relay:resend` audit entry in the session file (audit.ts), so an
+ *   outside reader (e.g. an RPC client) can pair the re-sent run with the prompt that was held instead of
+ *   guessing from timestamps. A relay adds exactly one entry otherwise: the compaction entry itself.
  *
  * Seams:
  *   M3 (LLM-written section): pass `hooks.extraSections` to createContextRelay; the sections are appended to the
@@ -23,6 +26,7 @@ import path from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { CompactionResult, ExtensionAPI, ExtensionContext, SessionBeforeCompactEvent } from "@earendil-works/pi-coding-agent";
 import { type AutoConfig, appendRelayLog, cacheExpiry, formatTokens, parseAuto, type RelayLogRecord } from "./auto.ts";
+import { RESEND_ENTRY_TYPE, buildResendRecord } from "./audit.ts";
 import { isSubagentSession } from "./detect.ts";
 import { type Entry, applyContextEdits } from "./entries.ts";
 import { collectGit } from "./git.ts";
@@ -131,6 +135,8 @@ export function createContextRelay(hooks: RelayHooks = {}) {
       }
     };
     const notify = (ctx: ExtensionContext, message: string, level: "info" | "warning" | "error" = "info") => void safe(() => ctx.ui.notify(message, level));
+    /** Best-effort audit entry (audit.ts); never let bookkeeping break a relay or a re-send. */
+    const appendAudit = (customType: string, data: Record<string, unknown>) => void safe(() => pi.appendEntry(customType, data));
     const contextTokens = (ctx: ExtensionContext): number | undefined => safe(() => ctx.getContextUsage()?.tokens) ?? undefined;
     const cancelExpiryTimer = () => {
       if (expiryTimer) clearTimeout(expiryTimer);
@@ -141,7 +147,7 @@ export function createContextRelay(hooks: RelayHooks = {}) {
       tokens !== undefined && tokens >= minTokens && (tokensAfterLastRelay === undefined || tokens >= tokensAfterLastRelay + (auto?.minGrowthTokens ?? 0));
 
     /** Send the user messages held during a relay as ONE user message (same text/images, same order). */
-    function releaseHeld(ctx: ExtensionContext, gen: number, pending = held): void {
+    function releaseHeld(ctx: ExtensionContext, gen: number, pending = held, trigger?: Trigger): void {
       // Each completion owns its array: an old callback must never drain a newer session's input.
       const items = pending.splice(0);
       if (pending === held) held = [];
@@ -157,6 +163,8 @@ export function createContextRelay(hooks: RelayHooks = {}) {
       }
       const text = items.map((i) => i.text).join("\n\n");
       const images = items.flatMap((i) => i.images ?? []);
+      // Correlation marker (audit.ts): the user entry written by the re-send is the next one after this.
+      if (trigger) appendAudit(RESEND_ENTRY_TYPE, buildResendRecord({ at: new Date().toISOString(), trigger, items }));
       // A background notification (triggerTurn) or the TUI's compaction queue may already have
       // started a run. Without deliverAs Pi rejects the resend and silently loses the held input.
       // followUp is also valid when idle, and preserves exactly-once delivery in either state.
@@ -197,7 +205,7 @@ export function createContextRelay(hooks: RelayHooks = {}) {
         } else {
           notify(ctx, `context-relay: auto relay (${trigger}) failed: ${error?.message}${pending.length ? " — your message is sent anyway." : ""}`, "warning");
         }
-        releaseHeld(ctx, gen, pending);
+        releaseHeld(ctx, gen, pending, trigger);
       };
       held = pending;
       return startRelay(ctx, { onComplete: (r) => finish(r), onError: (e) => finish(undefined, e) });

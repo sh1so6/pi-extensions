@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { AUTO_DEFAULTS, cacheExpiry, cacheTtlMs, formatTokens, parseAuto } from "./auto.ts";
+import { RESEND_ENTRY_TYPE, buildResendRecord, fingerprintHeldItem } from "./audit.ts";
 import { isSubagentSession } from "./detect.ts";
 import { applyContextEdits, contextStartIndex } from "./entries.ts";
 import { collectGit } from "./git.ts";
@@ -253,6 +254,42 @@ test("isSubagentSession: no UI or #<8 hex> session name", () => {
   assert.equal(isSubagentSession({ hasUI: true, sessionManager: sm("designer#0a1b2c3") }), false);
   assert.equal(isSubagentSession({ hasUI: false, sessionManager: sm(undefined) }), true);
   assert.equal(isSubagentSession({ sessionManager: sm(undefined) }), true);
+});
+
+test("isSubagentSession: mode decides when reported (rpc is main, print/json are headless)", () => {
+  const sm = (name) => ({ getSessionName: () => name });
+  // RPC hands extensions a real UI context (hasUI true), and it is a main session.
+  assert.equal(isSubagentSession({ mode: "rpc", hasUI: true, sessionManager: sm("pi-rpc-worker") }), false);
+  assert.equal(isSubagentSession({ mode: "tui", hasUI: true, sessionManager: sm(undefined) }), false);
+  // One-shot modes are headless even if a UI context were present.
+  assert.equal(isSubagentSession({ mode: "print", hasUI: true, sessionManager: sm(undefined) }), true);
+  assert.equal(isSubagentSession({ mode: "json", hasUI: false, sessionManager: sm(undefined) }), true);
+  // The pi-subagents name contract wins in any mode.
+  assert.equal(isSubagentSession({ mode: "rpc", hasUI: true, sessionManager: sm("worker#0a1b2c3d") }), true);
+  assert.equal(isSubagentSession({ mode: "tui", hasUI: true, sessionManager: sm("worker#0A1B2C3D") }), true);
+});
+
+// ---------- audit entries ----------
+test("audit: held items are fingerprinted with sha256 of the exact text", () => {
+  // sha256("hello") — a re-sent user entry with this text pairs with the held input deterministically.
+  assert.deepEqual(fingerprintHeldItem({ text: "hello" }), {
+    sha256: "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+    chars: 5,
+    images: 0,
+  });
+  assert.equal(fingerprintHeldItem({ text: "x", images: [{}, {}] }).images, 2);
+  assert.notEqual(fingerprintHeldItem({ text: "hello" }).sha256, fingerprintHeldItem({ text: "hello " }).sha256);
+});
+
+test("audit: resend records carry the held items' fingerprints", () => {
+  assert.equal(RESEND_ENTRY_TYPE, "context-relay:resend");
+  const resend = buildResendRecord({ at: "2026-11-11T00:00:00.000Z", trigger: "input", items: [{ text: "a" }, { text: "bc", images: [{}] }] });
+  assert.equal(resend.v, 1);
+  assert.equal(resend.trigger, "input");
+  assert.equal(resend.totalChars, 3);
+  assert.equal(resend.items.length, 2);
+  assert.equal(resend.items[1].images, 1);
+  assert.equal(resend.items[0].sha256, fingerprintHeldItem({ text: "a" }).sha256);
 });
 
 // ---------- git ----------

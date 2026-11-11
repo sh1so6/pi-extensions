@@ -1,6 +1,6 @@
 {
   "name": "@sh1so6/pi-context-relay",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Pi extension: deterministic handoff note instead of LLM-summarized compaction (/relay) plus a recall tool",
   "type": "module",
   "license": "MIT",
