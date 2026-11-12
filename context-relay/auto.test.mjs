@@ -220,7 +220,7 @@ test("E': expiry trigger respects expiryMinTokens", { skip, timeout: 60_000 }, a
 
 test("F: subagent-marked / headless sessions: nothing happens (no input relay, no expiry relay)", { skip, timeout: 60_000 }, async () => {
   writeConfig({ auto: { onInput: true, inputMinTokens: 100, beforeExpiry: true, expiryMinTokens: 100, minGrowthTokens: 0 } });
-  for (const opts of [{ name: "worker#0a1b2c3d" }, { hasUI: false }]) {
+  for (const opts of [{ name: "worker#0a1b2c3d", hasUI: false }, { hasUI: false }]) {
     const relay = relayExt.createContextRelay({ expiryLeadMs: 300 });
     const { session, faux } = await makeSession({ ...opts, relay, promptCache: { short: 1 } });
     await twoBulkyTurns(session, faux);

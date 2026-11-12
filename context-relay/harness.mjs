@@ -106,10 +106,10 @@ export function dumpTool(piApi) {
 }
 
 /**
- * @param {{ hasUI?: boolean, name?: string, relay?: Function, extra?: Function[], promptCache?: {short?: number, long?: number} }} opts
+ * @param {{ hasUI?: boolean, name?: string, mode?: string, relay?: Function, extra?: Function[], promptCache?: {short?: number, long?: number} }} opts
  *   relay = extension factory under test (default: relayExt.default); extra = factories registered BEFORE it.
  */
-export async function makeSession({ hasUI = true, name, relay, extra = [], promptCache } = {}) {
+export async function makeSession({ hasUI = true, name, mode = "tui", relay, extra = [], promptCache } = {}) {
   const notes = [];
   const faux = ai.fauxProvider({ provider: "faux", models: [{ id: "faux-model" }] });
   const model = faux.getModel();
@@ -122,7 +122,7 @@ export async function makeSession({ hasUI = true, name, relay, extra = [], promp
   settingsManager.applyOverrides({ compaction: { keepRecentTokens: 1, enabled: false } });
   const { session } = await pi.createAgentSession({ cwd, agentDir, modelRuntime, model, resourceLoader, settingsManager, sessionManager: pi.SessionManager.inMemory() });
   if (name) session.setSessionName(name);
-  await session.bindExtensions(hasUI ? { uiContext: uiContext(notes) } : {});
+  await session.bindExtensions(hasUI ? { uiContext: uiContext(notes), mode } : {}); // no UI = pi-subagents child: mode stays "print"
   sessions.push(session);
   return { session, faux, notes };
 }

@@ -167,7 +167,7 @@ test("expiry: failed/aborted writes cannot change the last successful cache tier
   }
 });
 
-test("subagent suffix accepts all hexadecimal spellings", async () => {
+test("a #<8hex>-named session driven by a person (tui) is main; the name is not consulted", async () => {
   const { isSubagentSession } = await import("./detect.ts");
-  assert.equal(isSubagentSession({ hasUI: true, sessionManager: { getSessionName: () => "worker#AbCdEF12" } }), true);
+  assert.equal(isSubagentSession({ mode: "tui", hasUI: true, sessionManager: { getSessionName: () => "worker#AbCdEF12" } }), false);
 });

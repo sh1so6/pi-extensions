@@ -19,8 +19,9 @@
  *   - Skipped when PI_CACHE_RETENTION=long (pi already does it everywhere, warmer included).
  *
  * Main vs subagent (decided per session on session_start, state is per extension instance):
- * subagent = no UI (ctx.hasUI false) or session name ending in `#<8 hex>` (pi-subagents names its
- * sessions `${type}#${agentId.slice(0, 8)}` before session_start). Everything else is main.
+ * by ctx.mode: tui / rpc = main, print / json = subagent (pi-subagents children are bound without a UI
+ * context, which Pi reports as mode "print", hasUI false); without a mode, ctx.hasUI decides. The session
+ * name (`worker#<8hex>`) is NOT used: a person who resumes a subagent session makes it a main session.
  *
  * Optional config ~/.pi/agent/cache-ttl-main.json (read on session_start; missing = defaults):
  *   { "enabled": true }
@@ -41,14 +42,22 @@ import { getAgentDir, type ExtensionAPI, type ExtensionContext } from "@earendil
 
 export type Role = "main" | "subagent";
 
-const SUBAGENT_NAME = /#[0-9a-f]{8}$/;
+const INTERACTIVE_MODES: ReadonlySet<string> = new Set(["tui", "rpc"]);
+const HEADLESS_MODES: ReadonlySet<string> = new Set(["print", "json"]);
 const TTL = "1h";
 
-/** Main/subagent classification from the session name and UI availability. */
-export function detectRole(sessionName: string | undefined, hasUI: boolean): Role {
-  if (!hasUI) return "subagent";
-  if (sessionName && SUBAGENT_NAME.test(sessionName)) return "subagent";
-  return "main";
+/**
+ * Main/subagent classification from the run mode and UI availability. The session NAME is not used: a
+ * pi-subagents child keeps its `worker#<8hex>` name when a person resumes it, and that session is main then.
+ * pi-subagents children are bound without a UI context, so Pi reports them as mode "print" with hasUI false.
+ * tui and rpc (RPC provides a real UI context, hasUI true) are main.
+ */
+export function detectRole(mode: string | undefined, hasUI: boolean): Role {
+  if (typeof mode === "string") {
+    if (INTERACTIVE_MODES.has(mode)) return "main";
+    if (HEADLESS_MODES.has(mode)) return "subagent";
+  }
+  return hasUI ? "main" : "subagent";
 }
 
 export interface TtlResult {
@@ -198,7 +207,7 @@ export default function cacheTtlMain(pi: ExtensionAPI) {
   /** Why this instance does nothing for the given context, if it does not. */
   const inactiveReason = (ctx: ExtensionContext): string | undefined => {
     if (!settings.enabled) return "disabled in cache-ttl-main.json";
-    if ((role ?? detectRole(ctx.sessionManager.getSessionName(), ctx.hasUI)) !== "main") return "subagent session";
+    if ((role ?? detectRole(ctx.mode, ctx.hasUI)) !== "main") return "subagent session";
     if (process.env.PI_CACHE_RETENTION === "long") return "PI_CACHE_RETENTION=long (pi already uses 1h)";
     if (ctx.model && ctx.model.api !== "anthropic-messages") return `model api ${ctx.model.api} is not anthropic-messages`;
     return undefined;
@@ -206,7 +215,7 @@ export default function cacheTtlMain(pi: ExtensionAPI) {
 
   pi.on("session_start", (_event, ctx) => {
     settings = parseSettings(readJson(nodePath.join(getAgentDir(), "cache-ttl-main.json")));
-    role = detectRole(ctx.sessionManager.getSessionName(), ctx.hasUI);
+    role = detectRole(ctx.mode, ctx.hasUI);
     payloads = modified = warmStops = 0;
     lastUpgraded = false;
   });

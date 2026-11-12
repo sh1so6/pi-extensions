@@ -117,15 +117,14 @@ test("applyOneHourTtl: no cache_control / odd shapes are passed through", { skip
   assert.equal(ext.applyOneHourTtl({ system: [{ cache_control: "weird" }] }).changed, 0);
 });
 
-test("detectRole: no UI or #<8 hex> name is a subagent", { skip }, () => {
+test("detectRole: tui / rpc are main, print / json are subagent, no mode falls back to hasUI", { skip }, () => {
+  assert.equal(ext.detectRole("tui", true), "main");
+  assert.equal(ext.detectRole("rpc", true), "main", "RPC provides a UI context and is a main session");
+  assert.equal(ext.detectRole("print", false), "subagent", "pi-subagents children are bound as print / no UI");
+  assert.equal(ext.detectRole("json", false), "subagent");
   assert.equal(ext.detectRole(undefined, true), "main");
-  assert.equal(ext.detectRole("my refactor session", true), "main");
-  assert.equal(ext.detectRole("worker#a1b2c3d4", true), "subagent");
-  assert.equal(ext.detectRole("general-purpose#0123abcd", true), "subagent");
-  assert.equal(ext.detectRole("worker#a1b2c3d", true), "main", "7 hex chars is not an agent id");
-  assert.equal(ext.detectRole("worker#A1B2C3D4", true), "main", "agent ids are lowercase hex");
-  assert.equal(ext.detectRole("worker#a1b2c3d4 tail", true), "main");
   assert.equal(ext.detectRole(undefined, false), "subagent");
+  assert.equal(ext.detectRole("something-new", true), "main", "unknown mode: hasUI decides");
 });
 
 test("parseSettings / lastAssistantUsage / formatStatus", { skip }, () => {
@@ -166,8 +165,9 @@ function stubPi() {
     registerCommand: (name, def) => (commands[name] = def),
   };
 }
-const ctxOf = ({ name, hasUI = true, api = "anthropic-messages", entries = [] } = {}) => ({
+const ctxOf = ({ name, hasUI = true, mode = hasUI ? "tui" : "print", api = "anthropic-messages", entries = [] } = {}) => ({
   hasUI,
+  mode,
   model: { api },
   sessionManager: { getSessionName: () => name, getEntries: () => entries },
   ui: { notify: (message) => (ctxOf.notes ??= []).push(message) },
@@ -193,9 +193,19 @@ test("handlers: main upgrades payload and stops the warmer; subagent / non-anthr
   assert.equal(main.out.system[0].cache_control.ttl, "1h");
   assert.deepEqual(main.warm, { action: "stop" });
 
+  // Regression: a subagent session resumed by a person keeps its `worker#<8hex>` name but is main (tui / rpc).
+  for (const [label, ctx] of [
+    ["tui, subagent-style name", ctxOf({ name: "worker#a1b2c3d4" })],
+    ["rpc, subagent-style name", ctxOf({ name: "worker#a1b2c3d4", mode: "rpc" })],
+    ["rpc", ctxOf({ mode: "rpc" })],
+  ]) {
+    const r = await run(ctx);
+    assert.equal(r.out.system[0].cache_control.ttl, "1h", `${label}: payload upgraded`);
+    assert.deepEqual(r.warm, { action: "stop" }, `${label}: warmer stopped`);
+  }
+
   for (const [label, ctx, opts] of [
-    ["subagent name", ctxOf({ name: "worker#a1b2c3d4" })],
-    ["no UI", ctxOf({ hasUI: false })],
+    ["no UI (print mode, as pi-subagents children)", ctxOf({ hasUI: false })],
     ["other api", ctxOf({ api: "openai-responses" })],
     ["env long", ctxOf(), { env: "long" }],
   ]) {
@@ -301,7 +311,7 @@ async function makeSession({ name, ui }) {
   });
   if (name) session.setSessionName(name); // pi-subagents does this before bindExtensions
   const notes = [];
-  await session.bindExtensions(ui ? { uiContext: uiContext(notes) } : {});
+  await session.bindExtensions(ui ? { uiContext: uiContext(notes), mode: "tui" } : {}); // no UI = pi-subagents child: mode stays "print"
   return { session, faux, ai, notes };
 }
 
@@ -336,8 +346,21 @@ test("session: main session turn works; payload upgraded and warmer stopped via 
   }
 });
 
+test("session: a subagent-named session resumed in the TUI is main (payload upgraded, warmer stopped)", { skip }, async () => {
+  const s = await makeSession({ name: "worker#a1b2c3d4", ui: true });
+  try {
+    await turn(s, "hello");
+    const payload = payloadFixture();
+    const out = await s.session.extensionRunner.emitBeforeProviderRequest(payload);
+    assert.equal(out.system[0].cache_control.ttl, "1h");
+    assert.equal(await s.session.extensionRunner.emitCacheWarmingDecision(noWarm), "stop");
+  } finally {
+    s.session.dispose();
+  }
+});
+
 for (const [label, opts] of [
-  ["named like a pi-subagents session", { name: "worker#a1b2c3d4", ui: true }],
+  ["named like a pi-subagents session, as bound by pi-subagents (no UI)", { name: "worker#a1b2c3d4", ui: false }],
   ["without UI", { ui: false }],
 ]) {
   test(`session: subagent (${label}) turn works and is left untouched`, { skip }, async () => {

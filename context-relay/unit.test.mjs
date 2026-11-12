@@ -246,27 +246,29 @@ test("recall lineage: parent session entries are searched only with scope lineag
 });
 
 // ---------- detection ----------
-test("isSubagentSession: no UI or #<8 hex> session name", () => {
+test("isSubagentSession: without a mode, hasUI decides; the session name is not consulted", () => {
   const sm = (name) => ({ getSessionName: () => name });
   assert.equal(isSubagentSession({ hasUI: true, sessionManager: sm(undefined) }), false);
   assert.equal(isSubagentSession({ hasUI: true, sessionManager: sm("my project") }), false);
-  assert.equal(isSubagentSession({ hasUI: true, sessionManager: sm("designer#0a1b2c3d") }), true);
-  assert.equal(isSubagentSession({ hasUI: true, sessionManager: sm("designer#0a1b2c3") }), false);
   assert.equal(isSubagentSession({ hasUI: false, sessionManager: sm(undefined) }), true);
   assert.equal(isSubagentSession({ sessionManager: sm(undefined) }), true);
+  // Regression: a pi-subagents session resumed by a person keeps its name but is a main session.
+  assert.equal(isSubagentSession({ hasUI: true, sessionManager: sm("designer#0a1b2c3d") }), false);
+  assert.equal(isSubagentSession({ hasUI: true, sessionManager: sm("worker#AbCdEF12") }), false);
 });
 
-test("isSubagentSession: mode decides when reported (rpc is main, print/json are headless)", () => {
+test("isSubagentSession: mode decides when reported (tui / rpc are main, print / json are headless)", () => {
   const sm = (name) => ({ getSessionName: () => name });
   // RPC hands extensions a real UI context (hasUI true), and it is a main session.
   assert.equal(isSubagentSession({ mode: "rpc", hasUI: true, sessionManager: sm("pi-rpc-worker") }), false);
   assert.equal(isSubagentSession({ mode: "tui", hasUI: true, sessionManager: sm(undefined) }), false);
-  // One-shot modes are headless even if a UI context were present.
+  // One-shot modes are headless (pi-subagents children: print, no UI), even if a UI context were present.
+  assert.equal(isSubagentSession({ mode: "print", hasUI: false, sessionManager: sm("worker#0a1b2c3d") }), true);
   assert.equal(isSubagentSession({ mode: "print", hasUI: true, sessionManager: sm(undefined) }), true);
   assert.equal(isSubagentSession({ mode: "json", hasUI: false, sessionManager: sm(undefined) }), true);
-  // The pi-subagents name contract wins in any mode.
-  assert.equal(isSubagentSession({ mode: "rpc", hasUI: true, sessionManager: sm("worker#0a1b2c3d") }), true);
-  assert.equal(isSubagentSession({ mode: "tui", hasUI: true, sessionManager: sm("worker#0A1B2C3D") }), true);
+  // The name never overrides an interactive mode.
+  assert.equal(isSubagentSession({ mode: "rpc", hasUI: true, sessionManager: sm("worker#0a1b2c3d") }), false);
+  assert.equal(isSubagentSession({ mode: "tui", hasUI: true, sessionManager: sm("worker#0A1B2C3D") }), false);
 });
 
 // ---------- audit entries ----------

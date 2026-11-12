@@ -1,28 +1,27 @@
 /** Main vs subagent / headless detection: this extension must stay inert in subagent and one-shot sessions. */
 
-// The subagent naming contract is #<8 hex digits>, regardless of hexadecimal letter case.
-export const SUBAGENT_NAME = /#[0-9a-f]{8}$/i;
-
-// One-shot modes have no long-lived session worth keeping warm: the context dies with the process.
-// The interactive family is "tui" | "rpc". Note that RPC DOES hand extensions a real UI context
-// (ctx.hasUI is true there), so hasUI alone cannot express "interactive" — ctx.mode can, and it also
-// keeps this working if Pi ever changes what UI an RPC session gets.
+// Run modes. "tui" and "rpc" are driven by a person or an RPC client: that is a main session.
+// RPC DOES hand extensions a real UI context (ctx.hasUI is true there), so hasUI alone is not "interactive";
+// ctx.mode says it explicitly and keeps this working if Pi ever changes what UI an RPC session gets.
+const INTERACTIVE_MODES: ReadonlySet<string> = new Set(["tui", "rpc"]);
+// One-shot modes. pi-subagents children are bound without a UI context, so Pi reports them as "print"
+// (the default mode) with hasUI false: they land here without any naming convention.
 const HEADLESS_MODES: ReadonlySet<string> = new Set(["print", "json"]);
 
 export interface SessionShape {
   hasUI?: boolean;
   mode?: string;
-  sessionManager?: { getSessionName?: () => string | undefined };
 }
 
+/**
+ * The session NAME is deliberately not consulted. A pi-subagents child keeps its `worker#<8hex>` name when a
+ * person later resumes or takes over that session in the TUI; judging by name would switch relay / 1h cache off
+ * for a session that is now the main one.
+ */
 export function isSubagentSession(ctx: SessionShape): boolean {
-  let name: string | undefined;
-  try {
-    name = ctx.sessionManager?.getSessionName?.();
-  } catch {
-    name = undefined;
+  if (typeof ctx.mode === "string") {
+    if (INTERACTIVE_MODES.has(ctx.mode)) return false;
+    if (HEADLESS_MODES.has(ctx.mode)) return true;
   }
-  if (name && SUBAGENT_NAME.test(name)) return true; // pi-subagents children, whatever the mode
-  if (typeof ctx.mode === "string" && ctx.mode !== "") return HEADLESS_MODES.has(ctx.mode);
-  return !ctx.hasUI; // no mode reported (older Pi, test doubles): the original UI heuristic
+  return !ctx.hasUI; // no / unknown mode (older Pi, test doubles): the original UI heuristic
 }

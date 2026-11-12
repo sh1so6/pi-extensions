@@ -1,6 +1,6 @@
 {
   "name": "@sh1so6/pi-cache-ttl-main",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Pi extension: 1-hour Anthropic prompt cache for the main session only (subagents untouched)",
   "type": "module",
   "license": "MIT",

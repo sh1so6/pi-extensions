@@ -6,7 +6,7 @@ A Pi extension that creates a **pseudo new session** instead of LLM-summarized c
 
 - It replaces the history with a "deterministically generated handoff note" plus "the most recent exchanges". No LLM is used (zero cost, same result every time).
 - Old raw logs (output of bash / read / codemode, etc.) **stay in the session file as they are**, so the model can fetch them with the `recall` tool only when needed.
-- It is for the main (orchestrator) session only. In subagent / headless sessions — a session name ending in `…#<8 hex digits>` (the pi-subagents contract), or a one-shot mode (`ctx.mode` is `print` / `json`; `tui` and `rpc` count as main, since RPC does provide a UI context) — it does nothing (no tools or commands are registered, and handlers pass straight through).
+- It is for the main (orchestrator) session only. In subagent / headless sessions — a one-shot mode (`ctx.mode` is `print` / `json`; pi-subagents children are bound without a UI context, so Pi reports them as `print`; `tui` and `rpc` count as main, since RPC does provide a UI context) — it does nothing (no tools or commands are registered, and handlers pass straight through). The session name is deliberately not consulted: a `worker#<8hex>` session that a person resumes in the TUI is a main session.
 
 ## Installation
 

@@ -85,7 +85,7 @@ function dumpTool(piApi) {
   });
 }
 
-async function makeSession({ hasUI = true, name } = {}) {
+async function makeSession({ hasUI = true, name, mode = "tui" } = {}) {
   const notes = [];
   const faux = ai.fauxProvider({ provider: "faux", models: [{ id: "faux-model" }] });
   const modelRuntime = await pi.ModelRuntime.create({ authPath: path.join(tmp, "auth.json"), modelsPath: null, refreshOnCreate: false });
@@ -104,7 +104,7 @@ async function makeSession({ hasUI = true, name } = {}) {
     sessionManager: pi.SessionManager.inMemory(),
   });
   if (name) session.setSessionName(name);
-  await session.bindExtensions(hasUI ? { uiContext: uiContext(notes) } : {});
+  await session.bindExtensions(hasUI ? { uiContext: uiContext(notes), mode } : {}); // no UI = pi-subagents child: mode stays "print"
   sessions.push(session);
   return { session, faux, notes };
 }
@@ -234,7 +234,7 @@ test("relay: the next provider request = system + hand-off note + latest exchang
 });
 
 test("subagent / headless sessions: no recall tool, no /relay command, handlers inert", { skip, timeout: 60_000 }, async () => {
-  for (const opts of [{ name: "worker#0a1b2c3d" }, { hasUI: false }]) {
+  for (const opts of [{ name: "worker#0a1b2c3d", hasUI: false }, { hasUI: false }, { mode: "print" }]) {
     const { session, faux } = await makeSession(opts);
     const names = session.getAllTools().map((t) => t.name);
     assert.ok(!names.includes("recall"), `no recall for ${JSON.stringify(opts)}: ${names}`);
