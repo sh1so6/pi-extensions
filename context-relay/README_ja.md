@@ -22,12 +22,16 @@ pi install npm:@sh1so6/pi-context-relay
 |---|---|
 | `/relay` | アイドル時に実行。`ctx.compact()` 経由で圧縮し、`session_before_compact` で結果を差し替えます |
 | `recall({query, limit?, scope?})` | 文脈から外れた過去のエントリを大文字小文字無視・AND で検索。`entryId`・種別・時刻・±200 文字のスニペットを返す（既定 8 件、出力 ~8k 文字上限） |
+| `recall({query, regex:true})` | 同じ検索だが `query` を大文字小文字無視の正規表現として扱う（各項目は先頭 20 万文字までを検査。破滅的バックトラックのパターンは止まり得るので単純に） |
+| `recall({cursor})` | 打ち切られた検索の続き（`limit`・出力上限・3 秒の時間予算で切れたとき）。切れた結果の末尾に `continue: recall({cursor:"…"})` が付くのでそのまま渡す。カーソルは位置（エントリ id＋項目）とクエリ・モード・scope を持つので、新しいエントリが増えても有効。指す先が消えていれば推測せずその旨を返す。時間予算で切れたときも必ずカーソルを返す（200 文字超のクエリは対象外） |
+| `recall({tail:N})` | 最新の compaction より前の、テキストを持つ末尾 N（1〜50）件を古い順に 1 件ずつ短く表示（直近の経過の確認用） |
+| `recall({around:{entryId, before?, after?}})` | エントリ（`>>` 印）とその前後（各 0〜10、既定 3）を ~12k 文字に収めて表示。全文は `entryId` で |
 | `recall({entryId, offset?})` | そのエントリの全文（~12k 文字ごと、続きの offset を案内）。`note:<n>` で引き継ぎノート自体も読める |
 
 `/relay` 以外の圧縮（`/compact`・自動圧縮）には介入せず、Pi 標準（または他拡張）がそのまま動きます。
 `/relay` は私的マーカーを `customInstructions` に載せて呼ぶので、それを検出した時だけノートを返します。
 
-`recall` は **`query` か `entryId` のどちらか**（両方なら `entryId` 優先）。`limit` は 1〜30、`offset` は 0 以上に丸め、型違いの引数は無視。
+`recall` は `entryId` > `around` > `cursor` > `tail` > `query` のうち、最初に指定されたものを実行。`limit` は 1〜30、`offset` は 0 以上に丸め、型違いの引数は無視。
 出力は上限付き（検索 8000 文字、全文 ~12k 文字。入力した query / entryId のエコーも切り詰め）。
 ノートも `recall` も **`context_edit` 適用後（モデルから見えている）の内容**が基準です。omit された発言はノートにも検索結果にも出ず（`entryId` 指定では「omit 済み」と表示）、置換された発言は置換後の本文を使います。
 圧縮（キャンセル）の `AbortSignal` を尊重し、中断時にノートファイルを残しません。

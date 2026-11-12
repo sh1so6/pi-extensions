@@ -22,12 +22,16 @@ The pre-expiry trigger (automatic B) assumes the 1h cache that `@sh1so6/pi-cache
 |---|---|
 | `/relay` | Run it while idle. It compacts via `ctx.compact()` and swaps in the result in `session_before_compact` |
 | `recall({query, limit?, scope?})` | Searches past entries that have fallen out of context, case-insensitively with AND. Returns `entryId`, kind, time, and a ±200-character snippet (default 8 results, output capped at ~8k characters) |
+| `recall({query, regex:true})` | Same search, but `query` is a case-insensitive regular expression (each item is tested on its first 200k characters; a pattern with catastrophic backtracking can still stall, so keep patterns simple) |
+| `recall({cursor})` | Continues a search that was cut (by `limit`, the output cap or the 3 s time budget). Every cut result ends with `continue: recall({cursor:"…"})`; pass it back unchanged. The cursor records the position (entry id + item) plus the query/mode/scope, so it stays valid after new entries are added; if the entry it points to is gone it says so instead of guessing. A time-budget cut never ends silently: it always returns a cursor (queries over 200 characters get none) |
+| `recall({tail:N})` | The last N (1–50) text-bearing entries before the newest compaction, oldest first, one short block each (review recent steps) |
+| `recall({around:{entryId, before?, after?}})` | An entry (marked `>>`) with its neighbours (0–10 each, default 3), shortened to fit ~12k characters; use `entryId` for the full text |
 | `recall({entryId, offset?})` | Returns the full text of that entry (in chunks of ~12k characters, with the next offset indicated). `note:<n>` reads a handoff note itself |
 
 Compactions other than `/relay` (`/compact`, automatic compaction) are left alone, and Pi's default (or another extension) handles them as usual.
 `/relay` calls compaction with a private marker in `customInstructions`, and the note is returned only when that marker is detected.
 
-`recall` takes **either `query` or `entryId`** (if both are given, `entryId` wins). `limit` is clamped to 1–30 and `offset` to 0 or more; arguments of the wrong type are ignored.
+`recall` uses the first of `entryId` > `around` > `cursor` > `tail` > `query` that is given. `limit` is clamped to 1–30 and `offset` to 0 or more; arguments of the wrong type are ignored.
 Output is capped (8000 characters for search, ~12k characters for full text; the echoed query / entryId is also truncated).
 Both the note and `recall` are based on the content **after `context_edit` has been applied (what the model actually sees)**. Omitted messages appear in neither the note nor search results (with `entryId` they show as "omitted"), and replaced messages use their replacement text.
 It respects the `AbortSignal` of the compaction (cancellation) and leaves no note file behind when aborted.

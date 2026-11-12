@@ -13,7 +13,7 @@ import { applyContextEdits, contextStartIndex } from "./entries.ts";
 import { collectGit } from "./git.ts";
 import { buildNote, collectSubagents, modifiedFiles, pickFirstKept, subagentWorktrees, worktreePathsIn } from "./note.ts";
 import { entryItems, isUserMessage } from "./entries.ts";
-import { SEARCH_CAP, currentSource, readAncestors, recall } from "./recall.ts";
+import { SEARCH_CAP, currentSource, decodeCursor, readAncestors, recall, recallSearch, wantsLineage } from "./recall.ts";
 
 // ---------- fixtures shaped like real session entries ----------
 let seq = 0;
@@ -456,4 +456,108 @@ test("recall: entryId wins over query; wrong-typed / out-of-range arguments are 
   assert.match(recall(src, { entryId: target.id, offset: -10 }), /chars 0-/);
   assert.match(recall(src, { entryId: target.id, offset: Number.POSITIVE_INFINITY }), /past the end/);
   assert.match(recall(src, { entryId: target.id, offset: "abc" }), /chars 0-/);
+});
+
+// ---------- recall: regex / cursor / tail / around ----------
+function needleSession(n = 100) {
+  seq = 0;
+  const e = [];
+  for (let i = 0; i < n; i++) {
+    e.push(user(`needle-${i} ${"filler ".repeat(200)}`));
+    e.push(assistant(`ok ${i}`));
+  }
+  e.push(base("compaction", { summary: "n", firstKeptEntryId: e.at(-1).id, tokensBefore: 1 }));
+  return e;
+}
+const hitIds = (out) => [...out.matchAll(/^\[(e\d+)\]/gm)].map((m) => m[1]);
+const cursorOf = (out) => /cursor:"([^"]+)"/.exec(out)?.[1];
+
+test("recall regex: case-insensitive pattern, invalid pattern is reported, plain mode unchanged", () => {
+  const src = [currentSource(needleSession(10))];
+  const out = recall(src, { query: String.raw`needle-(3|7)\b`, regex: true });
+  assert.equal(hitIds(out).length, 2);
+  assert.match(out, /NEEDLE-7|needle-7/i);
+  assert.match(recall(src, { query: "(", regex: true }), /invalid regex/);
+  assert.match(recall(src, { query: String.raw`needle-(3|7)\b` }), /no match/); // without regex:true it is literal words
+});
+
+test("recall cursor: pages through every match exactly once, newest first", () => {
+  const src = [currentSource(needleSession(100))];
+  const seen = [];
+  let out = recall(src, { query: "needle", limit: 30 });
+  for (let guard = 0; guard < 10; guard++) {
+    seen.push(...hitIds(out));
+    const cursor = cursorOf(out);
+    if (!cursor) break;
+    out = recall(src, { cursor, limit: 30 });
+  }
+  assert.equal(seen.length, 100);
+  assert.equal(new Set(seen).size, 100);
+  assert.deepEqual(seen, [...seen].sort().reverse()); // ids are monotonic: newest first
+  assert.match(out, /\(\d+ matches?;/); // the last page has no cursor
+  assert.equal(cursorOf(out), undefined);
+});
+
+test("recall cursor: survives new entries, keeps regex mode, rejects garbage and vanished anchors", () => {
+  const e = needleSession(40);
+  const first = recall([currentSource(e)], { query: String.raw`needle-\d+`, regex: true, limit: 5 });
+  const cursor = cursorOf(first);
+  assert.ok(cursor);
+  const grown = [...e, user("later needle-999"), assistant("x")];
+  const next = recall([currentSource(grown)], { cursor, limit: 5 });
+  assert.equal(hitIds(next).length, 5);
+  assert.ok(!hitIds(next).some((id) => hitIds(first).includes(id)));
+  assert.match(recall([currentSource(e)], { cursor: "not-a-cursor" }), /invalid cursor/);
+  assert.match(recall([currentSource(needleSession(3))], { cursor }), /no longer matches/);
+});
+
+test("recall search: a time budget cut always returns a cursor and the search still completes", () => {
+  const src = [currentSource(needleSession(30))];
+  let clock = 0;
+  const tick = () => (clock += 10);
+  const pages = [];
+  let out = recallSearch(src, "needle", 30, { budgetMs: 100, now: tick });
+  for (let guard = 0; guard < 20; guard++) {
+    pages.push(...hitIds(out));
+    const cursor = cursorOf(out);
+    if (!cursor) break;
+    assert.match(out, /time budget/);
+    const { resume } = { resume: decodeCursor(cursor).p };
+    out = recallSearch(src, "needle", 30, { budgetMs: 100, now: tick, resume });
+  }
+  assert.equal(new Set(pages).size, 30);
+  // no match inside the budget: still a cursor, never a silent miss
+  clock = 0;
+  const none = recallSearch(src, "zzz-absent", 8, { budgetMs: 0, now: tick });
+  assert.match(none, /time budget/);
+  assert.ok(cursorOf(none));
+});
+
+test("recall cursor: lineage searches carry their scope inside the cursor", () => {
+  assert.equal(wantsLineage({ scope: "lineage" }), true);
+  assert.equal(wantsLineage({}), false);
+  const out = recallSearch([currentSource(needleSession(40))], "needle", 5, { lineage: true });
+  assert.equal(wantsLineage({ cursor: cursorOf(out) }), true);
+});
+
+test("recall tail: the last N text entries before the newest compaction, oldest first", () => {
+  const src = [currentSource(needleSession(20))];
+  const out = recall(src, { tail: 4 });
+  const ids = hitIds(out);
+  assert.equal(ids.length, 4);
+  assert.deepEqual(ids, [...ids].sort());
+  assert.match(out, /ok 18/);
+  assert.match(recall([currentSource(conversation())], { tail: 5 }), /nothing to review/);
+  assert.ok(recall(src, { tail: 500 }).length <= SEARCH_CAP);
+});
+
+test("recall around: entry with neighbours, marker, clamping and unknown id", () => {
+  const e = needleSession(10);
+  const src = [currentSource(e)];
+  const out = recall(src, { around: { entryId: e[10].id, before: 2, after: 1 } });
+  assert.match(out, new RegExp(String.raw`>> \[${e[10].id}\]`));
+  assert.equal(hitIds(out.replace(/>> /g, "")).length, 4);
+  assert.ok(out.indexOf(e[8].id) < out.indexOf(e[10].id) && out.indexOf(e[10].id) < out.indexOf(e[11].id));
+  assert.ok(recall(src, { around: { entryId: e[10].id, before: 999, after: 999 } }).length <= 12000);
+  assert.match(recall(src, { around: { entryId: "nope" } }), /not found/);
 });

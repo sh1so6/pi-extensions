@@ -31,7 +31,7 @@ import { isSubagentSession } from "./detect.ts";
 import { type Entry, applyContextEdits } from "./entries.ts";
 import { collectGit } from "./git.ts";
 import { type Limits, NOTE_VERSION, type NoteSection, buildNote, pickFirstKept, subagentWorktrees } from "./note.ts";
-import { currentSource, readAncestors, readNoteFiles, recall } from "./recall.ts";
+import { currentSource, readAncestors, readNoteFiles, recall, wantsLineage } from "./recall.ts";
 
 /** Private marker passed as customInstructions so session_before_compact can tell a relay from a normal compaction. */
 export const RELAY_MARKER = "\u0001context-relay:v1\u0001";
@@ -318,7 +318,9 @@ export function createContextRelay(hooks: RelayHooks = {}) {
         label: "Recall",
         description:
           "Look up older conversation details that were removed from context by a relay/compaction (tool outputs, files read, earlier turns). " +
-          "Pass EITHER query OR entryId (entryId wins if both). recall({query, limit?}) = case-insensitive AND search → entryIds + snippets. recall({entryId, offset?}) = full text of one entry. scope:'lineage' also searches parent sessions.",
+          "Modes (first match wins): recall({entryId, offset?}) = full text of one entry; recall({around:{entryId, before?, after?}}) = that entry plus neighbours; " +
+          "recall({cursor}) = continue a search that was cut (pass the cursor exactly as returned); recall({tail:N}) = the last N steps before the newest compaction; " +
+          "recall({query, regex?, limit?}) = case-insensitive search (AND of words, or a regular expression with regex:true) → entryIds + snippets. scope:'lineage' also searches parent sessions.",
         parameters: {
           type: "object",
           properties: {
@@ -327,13 +329,26 @@ export function createContextRelay(hooks: RelayHooks = {}) {
             entryId: { type: "string", description: "Read this entry in full (from a search hit or note:<n>)" },
             offset: { type: "number", description: "Char offset when reading a long entry (>= 0; clamped)" },
             scope: { type: "string", enum: ["session", "lineage"], description: "session (default) or lineage (+ parent sessions)" },
+            regex: { type: "boolean", description: "Treat query as a case-insensitive regular expression (default: AND of words)" },
+            cursor: { type: "string", description: "Continue a cut search; use the cursor from the previous result unchanged" },
+            tail: { type: "number", description: "Review the last N (1-50) entries before the newest compaction, oldest first" },
+            around: {
+              type: "object",
+              description: "Show an entry with its neighbours",
+              properties: {
+                entryId: { type: "string" },
+                before: { type: "number", description: "Entries before it, 0-10 (default 3)" },
+                after: { type: "number", description: "Entries after it, 0-10 (default 3)" },
+              },
+              required: ["entryId"],
+            },
           },
         },
         async execute(_id, params, _signal, _onUpdate, ctx) {
           const sm = ctx.sessionManager;
           const dir = notesDir(sm.getSessionId());
           const sources = [currentSource(sm.getBranch() as Entry[], readNoteFiles(dir))];
-          if ((params as { scope?: string }).scope === "lineage") sources.push(...readAncestors(sm.getHeader()?.parentSession, 4, (id) => notesDir(id)));
+          if (wantsLineage(params as Parameters<typeof recall>[1])) sources.push(...readAncestors(sm.getHeader()?.parentSession, 4, (id) => notesDir(id)));
           const text = recall(sources, params as Parameters<typeof recall>[1]);
           return { content: [{ type: "text", text }], details: {} };
         },
