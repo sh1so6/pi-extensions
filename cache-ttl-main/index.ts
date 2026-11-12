@@ -35,6 +35,9 @@
  * anthropic-messages format but rejects ttl would fail requests in the main session - set
  * { "enabled": false } or use /cache-ttl to check. The cache entry written before this extension
  * was active (5 minutes) is not upgraded retroactively.
+ * Role detection assumes pi-subagents binds children without a UI context (Pi reports mode "print", hasUI false;
+ * checked with pi-subagents 0.23.2 / Pi 1.5.1). If children ever get a UI context or mode "tui" they would count
+ * as main. RPC hasUI=true was verified on Pi 1.5.1 only; the mode-based rule does not depend on it.
  */
 import { existsSync, readFileSync } from "node:fs";
 import nodePath from "node:path";

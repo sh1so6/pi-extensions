@@ -100,6 +100,7 @@ node --test context-relay/verification.test.mjs # 独立検証: 画像 / 通知�
 - 入力保留中に別の入力が input ハンドラへ届くと、保留分は 1 通に結合して送る（空行区切り・順序維持）。画像 2 枚付きの結合は faux プロバイダのペイロードで E2E 検証済み。ただし Pi 本体の TUI compaction queue は text/mode のみ保持し、RPC の prompt は compaction 中に input ハンドラへ届く前に拒否されるため、その経路の画像・入力保全は本拡張だけでは保証できない。
 - relay 直後は `ctx.getContextUsage().tokens` が null（次の応答まで）。その間は自動 relay しない（推定値で補う案は未実装）。
 - セッション切替・終了と relay 完了が競合した場合、保留テキストは新セッションへ送らずエディタへ既存ドラフトと共に書き戻す（世代カウンタ・relay ごとの保留配列）。画像はエディタ API では復元できないため再添付枚数を警告。fake-state 回帰テスト済み、実 TUI では未確認。
+- main/サブの判定は `ctx.mode`（`tui` / `rpc` = メイン、`print` / `json` = ヘッドレス。mode が取れない時だけ `hasUI`）で行い、セッション名は見ない。人が再開した `worker#<8hex>` のセッションはメイン扱い。前提は pi-subagents が子セッションを UI コンテキストなしで起動する（Pi は mode `print`・`hasUI` false と報告する）こと（pi-subagents 0.23.2 / Pi 1.5.1 で確認）。将来 pi-subagents が子へ UI コンテキストや `mode: "tui"` を渡すと、子がメイン扱いになる。現行ルールは `unit.test.mjs` / `verification.test.mjs` の回帰テストで固定している。RPC が `hasUI: true` を返すことは Pi 1.5.1 でのみ確認（1.5.2 は未確認）。mode ベースなのでこの値には依存しない。
 - キャッシュ期限は Pi の usage（`cacheWrite` / `cacheWrite1h`）と `promptCache` 宣言に依存。実プロバイダでの 1h 反映は cache-ttl-main の `/cache-ttl` で確認する。
 
 ## M3 への継ぎ目
