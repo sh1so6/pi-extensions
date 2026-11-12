@@ -738,3 +738,11 @@ test("/X:/ style path links on Windows", { skip: process.platform !== "win32" },
 });
 
 test.after(() => rmSync(root, { recursive: true, force: true }));
+
+test("full-width / CJK punctuation ends a bare path", () => {
+  const f = path.join(src, "a.ts");
+  const link = `[${f.replaceAll("\\", "\\\\")}](${fileUrl(f)})`;
+  assert.equal(t(`（${f}）`), `（${link}）`);
+  assert.equal(t(`見て：${f}、次。`), `見て：${link}、次。`);
+  assert.equal(t(`「${f}」`), `「${link}」`);
+});

@@ -92,7 +92,8 @@ const LINE_SUFFIX = /^(.*?)(?::([1-9]\d{0,7})(?::([1-9]\d{0,7}))?|#L([1-9]\d{0,7
 const EXISTING_LINKS_OR_URLS = /!?\[[^\]\r\n]*\]\((?:\\.|[^)\r\n])*\)|<[a-z][a-z0-9+.-]*:\/\/[^>\r\n]+>|[a-z][a-z0-9+.-]*:\/\/[^\s<>"']+|mailto:[^\s<>"']+/gi;
 const INLINE_CODE = /(`+)([^`\r\n]*)\1/g;
 // Bare paths should have an explicit root or slash. Simple filenames are handled in `code`.
-const BARE_PATH = /(?:[A-Za-z]:[\\/]|\.{1,2}[\\/]|~[\\/]|\/(?!\/)|[\p{L}\p{N}_@.$-]+[\\/])[^\s<>"'`|*?()\[\]{}]+/gu;
+// Full-width/CJK punctuation (（）、。「」【】！？：； ...) also ends a path, so `（C:\a\b.xlsx）` does not swallow `）`.
+const BARE_PATH = /(?:[A-Za-z]:[\\/]|\.{1,2}[\\/]|~[\\/]|\/(?!\/)|[\p{L}\p{N}_@.$-]+[\\/])[^\s<>"'`|*?()\[\]{}\u3001-\u3003\u3008-\u3011\u3014-\u301F\uFF01-\uFF0F\uFF1A-\uFF20\uFF3B\uFF3D\uFF3E\uFF40\uFF5B-\uFF65]+/gu;
 
 // throwIfNoEntry:false avoids the cost of building an Error for the common
 // "missing" case; other failures (ENOTDIR, EACCES, ...) still throw.

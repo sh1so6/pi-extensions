@@ -1,6 +1,6 @@
 {
   "name": "@sh1so6/pi-path-click",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Pi extension: clickable local file paths in assistant messages (+ Everything search button)",
   "type": "module",
   "license": "MIT",
