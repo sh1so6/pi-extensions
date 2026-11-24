@@ -1,6 +1,8 @@
 # Publishes every workspace package whose version is not on npm yet.
 # Auth: npm Trusted Publishing (OIDC) -- no token. Register each package once with:
 #   npm trust github @sh1so6/pi-<name> --file publish.yml --repo sh1so6/pi-extensions
+# A package that is not on npm yet cannot be registered (E404): publish it ONCE by hand first with
+#   npm publish --access public -w <name>   (needs `npm login` + 2FA), then run the command above (needs --allow-publish).
 name: publish
 on:
   push:

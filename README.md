@@ -44,6 +44,19 @@ git commit -am "..." && git push                          # push すると GitHu
 
 公開は [`publish.yml`](.github/workflows/publish.yml)（npm Trusted Publishing）が行います。公開した版は取り消せません。mac 側は `pi update --extensions`。
 
+### 新しい拡張の初回公開
+
+未公開のパッケージには Trusted Publishing を登録できない（`npm trust` が E404）ため、**初回だけ手元で公開**します。
+
+```bash
+npm login                                                  # 未ログインなら（npm whoami で確認）
+npm publish --access public -w <name>                       # 1. 初回公開（2FA コードを入力。-w を付け忘れない）
+npm trust github @sh1so6/pi-<name> --file publish.yml --repo sh1so6/pi-extensions --allow-publish
+                                                           # 2. 以後の自動公開のための信頼設定（y と 2FA）
+```
+
+手順 2 の後は、通常どおり version を上げて push するだけで自動公開されます。ワークフローを手で再実行する必要はありません（手順 1 で公開済みの版はスキップされます）。
+
 ## テスト
 
 各ディレクトリで `node --test *.test.mjs`（`context-relay` は README を参照）。
