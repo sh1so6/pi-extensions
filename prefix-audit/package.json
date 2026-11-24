@@ -1,0 +1,29 @@
+{
+  "name": "@sh1so6/pi-prefix-audit",
+  "version": "0.1.0",
+  "description": "Pi extension: finds what changed in system / tools / earlier messages between Anthropic requests (explains 'Anthropic dropped N thinking blocks: prefix_binding_mismatch')",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "pi-package",
+    "pi-extension"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sh1so6/pi-extensions.git",
+    "directory": "prefix-audit"
+  },
+  "files": [
+    "index.ts",
+    "README.md",
+    "README_ja.md"
+  ],
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  }
+}

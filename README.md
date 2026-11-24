@@ -29,6 +29,7 @@ pi install npm:@sh1so6/pi-cache-ttl-main
 | [`path-click/`](path-click/) | 出力中のローカルパスをクリック可能にする | ボタン列は `fold-buttons` が必要 |
 | [`mcp-idle-release/`](mcp-idle-release/) | アイドルな MCP stdio サーバのプロセスを止めてメモリ解放 | — |
 | [`pi-model-buttons/`](pi-model-buttons/) | モデル＋thinking のクイック切替ボタン | — |
+| [`prefix-audit/`](prefix-audit/) | 連続する Anthropic リクエスト間で system / tools / 過去メッセージのどこが変わったかを記録し、`prefix_binding_mismatch`（thinking drop）の原因を探る診断用 | — |
 | [`pi-model-autocomplete/`](pi-model-autocomplete/) | `#` ＋モデル名の一部で補完 | — |
 | [`scrollbar-markers/`](scrollbar-markers/) | スクロールバーにユーザー発言・AI 返信の印 | — |
 | [`session-history/`](session-history/) | `/history` で履歴ビューア [pi-history](https://github.com/sh1so6/pi-history) を起動 | pi-history（Rust）を別途ビルドして PATH に置く |
