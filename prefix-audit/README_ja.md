@@ -16,4 +16,5 @@ pi install npm:@sh1so6/pi-prefix-audit
 - ログ: `~/.pi/agent/prefix-audit/<sessionId>.jsonl`（`req` は毎リクエスト、`diff` は変化したときだけ。`drop`）。メインとサブの両方を記録します。
 - 設定（任意）: `~/.pi/agent/prefix-audit.json` `{ "enabled": true }`
 - 再起動して再開したセッションは、最初のリクエストに比較元がありません。
+- 制限: この拡張より**後**に読み込まれた他拡張の `before_provider_request` が `system` / `tools` / メッセージを書き換えても見えません（「変更なし」と表示されます）。ログには変化した箇所の短い抜粋が入り、ローテーションはしません（ローカルのみ）。
 - ログ形式と制限は [index.ts](index.ts) の冒頭コメントを参照してください。
